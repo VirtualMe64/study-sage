@@ -4,13 +4,15 @@ import { PinoLogger } from '@mastra/loggers';
 import { LibSQLStore } from '@mastra/libsql';
 import { manimExplainerWorkflow } from './workflows/manim-explainer-workflow';
 import { lessonPlanAgent } from './agents/lesson-plan-agent';
+import { manimCodeAgent } from './agents/manim-code-agent';
 
 export const mastra = new Mastra({
   workflows: { 
     manimExplainerWorkflow 
   },
   agents: { 
-    lessonPlanAgent 
+    lessonPlanAgent,
+    manimCodeAgent
   },
   storage: new LibSQLStore({
     // stores telemetry, evals, ... into memory storage, if it needs to persist, change to file:../mastra.db

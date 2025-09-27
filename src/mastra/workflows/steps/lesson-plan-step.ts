@@ -19,19 +19,21 @@ Style preference: ${style}
 Generate 3-5 scenes that would create an engaging educational Manim animation about ${topic}.`
 }
 
-const outputSchema = z.object({
-  lessonPlan: z.object({
+const lessonPlanSchema = z.object({
+  title: z.string(),
+  objectives: z.array(z.string()),
+  scenes: z.array(z.object({
     title: z.string(),
-    objectives: z.array(z.string()),
-    scenes: z.array(z.object({
-      title: z.string(),
-      description: z.string(),
-      manimConcepts: z.array(z.string()).describe("Specific Manim visual concepts to use"),
-      keyPoints: z.array(z.string()),
-      estimatedDuration: z.number().describe("Estimated duration in seconds"),
-    })),
-  }),
-})
+    description: z.string(),
+    manimConcepts: z.array(z.string()).describe("Specific Manim visual concepts to use"),
+    keyPoints: z.array(z.string()),
+    estimatedDuration: z.number().describe("Estimated duration in seconds"),
+  })),
+});
+
+const outputSchema = z.object({
+  lessonPlan: lessonPlanSchema,
+});
 
 // Step 1: Generate Manim-focused lesson plan
 export const generateLessonPlanStep = createStep({
@@ -59,13 +61,13 @@ export const generateLessonPlanStep = createStep({
           content: generatePrompt(topic, complexity, depth, style)
         }],
       {
-        output: outputSchema,
+        output: lessonPlanSchema,
       });
 
       console.log("✅ AI lesson plan generated successfully");
       
       return {
-        lessonPlan: result,
+        lessonPlan: result as any, // Type assertion to handle Mastra's wrapped result type
       };
       
     } catch (error) {

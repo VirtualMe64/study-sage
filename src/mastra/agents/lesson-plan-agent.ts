@@ -25,6 +25,6 @@ Manim concepts you should reference include:
 
 Always consider visual storytelling and educational best practices.`,
 
-  model: openai("gpt-4o"),
+  model: openai("gpt-4o-mini"),
   tools: {},
 });
