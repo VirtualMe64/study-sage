@@ -4,6 +4,8 @@ import subprocess
 
 def render_video(results_json):
     # Step 1. clean up generated code
+    if os.path.exists("combined.mp4"):
+        os.remove("combined.mp4")
     shutil.rmtree("generated", ignore_errors=True)
     os.mkdir("generated")
 
