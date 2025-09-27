@@ -56,7 +56,7 @@ export const generateLessonPlanStep = createStep({
     
     try {
       // Use the Mastra agent to generate the lesson plan
-      const result = await lessonPlanAgent.generateVNext([{
+      const result = await lessonPlanAgent.generate([{
           role: "user",
           content: generatePrompt(topic, complexity, depth, style)
         }],

@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core";
 import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai"
 
 export const manimCodeAgent = new Agent({
   name: "ManimCodeAgent",
@@ -36,9 +37,10 @@ Code requirements:
 - CRITICAL: NEVER use multiline strings - keep all MathTex/Tex on single lines
 - For complex LaTeX (tables, matrices), use Python code to generate the strings programmatically
 - Example: Generate truth tables using list comprehensions and string formatting
+- CRITICAL: Use .animate for Mobject transformations (e.g., circle.animate.shift(RIGHT), NOT circle.shift(RIGHT) in self.play())
 
 Focus on creating animations that effectively teach the given concept through visual storytelling.`,
   
-  model: google("gemini-2.5-flash"),
+  model: openai("gpt-4.1"),
   tools: {},
 });
