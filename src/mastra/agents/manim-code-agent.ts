@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 
 export const manimCodeAgent = new Agent({
   name: "ManimCodeAgent",
@@ -39,6 +39,6 @@ Code requirements:
 
 Focus on creating animations that effectively teach the given concept through visual storytelling.`,
   
-  model: openai("gpt-4o-mini"),
+  model: google("gemini-2.5-flash"),
   tools: {},
 });

@@ -173,7 +173,7 @@ export const processScenesStep = createStep({
       
       try {
         // Use the Manim code agent directly to generate the code
-        const result = await manimCodeAgent.generateLegacy([{
+        const result = await manimCodeAgent.generateVNext([{
           role: "user",
           content: generatePrompt(
             scene.title,

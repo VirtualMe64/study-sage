@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 export const lessonPlanAgent = new Agent({
@@ -25,6 +25,6 @@ Manim concepts you should reference include:
 
 Always consider visual storytelling and educational best practices.`,
 
-  model: openai("gpt-4o-mini"),
+  model: google("gemini-2.5-flash"),
   tools: {},
 });
