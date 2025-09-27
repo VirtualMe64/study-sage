@@ -1,0 +1,48 @@
+# Example Scene-Based Outline
+
+This is an example of the scene delimiter format used by the new outline workflow.
+
+---SCENE: 1 | Intuition for Derivatives---
+Objectives: Build intuition for derivative as instantaneous rate of change.
+Narration/On-screen: "Slope of tangent line equals instantaneous rate of change."
+Visual plan: Cartesian plane, f(x)=x^2, moving point P on curve, tangent line at P.
+Animation plan: Draw axes -> plot f(x) -> animate point P moving -> construct secant -> limit to tangent.
+Dependencies: None
+Assessment hook: "What happens to the slope as the points get closer?"
+---ENDSCENE---
+
+---SCENE: 2 | Formal Definition---
+Objectives: Introduce the formal limit definition of derivative.
+Narration/On-screen: "f'(x) = lim(h→0) [f(x+h) - f(x)]/h"
+Visual plan: Function graph, two points (x,f(x)) and (x+h,f(x+h)), secant line, limit animation.
+Animation plan: Show two points -> draw secant -> animate h approaching 0 -> show tangent line.
+Dependencies: curve_f, point_p
+Assessment hook: "Can you identify the key components of this formula?"
+---ENDSCENE---
+
+---SCENE: 3 | Power Rule Example---
+Objectives: Demonstrate the power rule for derivatives.
+Narration/On-screen: "d/dx[x^n] = nx^(n-1)"
+Visual plan: Function f(x)=x^3, derivative f'(x)=3x^2, both plotted on same axes.
+Animation plan: Show f(x)=x^3 -> calculate derivative step by step -> plot f'(x)=3x^2 -> highlight relationship.
+Dependencies: axes_main
+Assessment hook: "What would be the derivative of x^4?"
+---ENDSCENE---
+
+---SCENE: 4 | Real-World Application---
+Objectives: Connect derivatives to real-world rate of change problems.
+Narration/On-screen: "Position, velocity, and acceleration are related by derivatives."
+Visual plan: Position vs time graph, velocity as slope, acceleration as second derivative.
+Animation plan: Show position graph -> highlight slope at different points -> show velocity graph -> connect to acceleration.
+Dependencies: None
+Assessment hook: "How would you find acceleration from a position function?"
+---ENDSCENE---
+
+---SCENE: 5 | Summary and Next Steps---
+Objectives: Reinforce key concepts and preview advanced topics.
+Narration/On-screen: "Derivatives measure instantaneous rate of change and have many applications."
+Visual plan: Summary diagram showing derivative concept, applications, and next topics.
+Animation plan: Fade in key concepts -> show applications -> preview chain rule and product rule.
+Dependencies: All previous scenes
+Assessment hook: "You're now ready to explore more advanced derivative rules!"
+---ENDSCENE---

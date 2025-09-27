@@ -2,29 +2,40 @@ import { createStep } from "@mastra/core/workflows";
 import { z } from "zod";
 import { manimCodeAgent } from "../../agents/manim-code-agent";
 
-const generatePrompt = (title: string, description: string, manimConcepts: string[], keyPoints: string[], estimatedDuration: number) => {
-  return `Generate complete, working Manim Python code for an educational animation scene.
+const generatePrompt = (scene: any) => {
+    return `Generate complete, working Manim Python code for an educational animation scene based on the approved outline.
 
 Scene Details:
-- Title: "${title}"
-- Description: ${description}
-- Key Points to Cover: ${keyPoints.join(", ")}
-- Suggested Manim Concepts: ${manimConcepts.join(", ")}
-- Target Duration: ${estimatedDuration} seconds
+- Title: "${scene.title}"
+- Objectives: ${scene.objectives}
+- Narration/On-screen: ${scene.narration}
+- Visual Plan: ${scene.visualPlan}
+- Animation Plan: ${scene.animationPlan}
+- Dependencies: ${scene.dependencies}
+${scene.assessmentHook ? `- Assessment Hook: ${scene.assessmentHook}` : ""}
+
+Enhanced Technical Details:
+${scene.preciseObjects ? `- Precise Objects: ${scene.preciseObjects.join(", ")}` : ""}
+${scene.orderedSteps ? `- Ordered Steps: ${scene.orderedSteps.join(" -> ")}` : ""}
+${scene.timingHints ? `- Timing Hints: ${scene.timingHints.join(", ")}` : ""}
+${scene.continuityHooks ? `- Continuity Hooks: Export [${scene.continuityHooks.export.join(", ")}], Import [${scene.continuityHooks.import.join(", ")}]` : ""}
+${scene.techNotes ? `- Tech Notes: ${scene.techNotes.join(", ")}` : ""}
 
 Requirements:
 1. Create a complete Python class that inherits from Scene
-2. Use appropriate Manim objects and animations
-3. Include proper timing with self.play() and self.wait()
-4. Make the animation educational and visually clear
-5. Use the suggested Manim concepts where appropriate
-6. Include descriptive comments explaining the animation logic
-7. Ensure the code is syntactically correct and executable
-8. Make the class name descriptive (based on the scene title)
-9. CRITICAL: Use Create instead of ShowCreation (ShowCreation is deprecated)
-10. CRITICAL: Properly escape backslashes in strings - use raw strings (r"") or double backslashes (\\\\) for LaTeX/MathTex
-11. CRITICAL: NEVER use multiline strings - keep all MathTex/Tex content on single lines
-12. CRITICAL: For complex LaTeX like tables, use string concatenation or variables, NOT multiline strings
+2. Use the precise object names from the outline when provided
+3. Follow the ordered animation steps from the outline
+4. Apply timing hints for appropriate pacing
+5. Include proper timing with self.play() and self.wait()
+6. Make the animation educational and visually clear
+7. Include descriptive comments explaining the animation logic
+8. Ensure the code is syntactically correct and executable
+9. Make the class name descriptive (based on the scene title)
+10. CRITICAL: Use Create instead of ShowCreation (ShowCreation is deprecated)
+11. CRITICAL: Properly escape backslashes in strings - use raw strings (r"") or double backslashes (\\\\) for LaTeX/MathTex
+12. CRITICAL: NEVER use multiline strings - keep all MathTex/Tex content on single lines
+13. CRITICAL: For complex LaTeX like tables, use string concatenation or variables, NOT multiline strings
+14. Use the technical notes to guide Manim class and method selection
 
 String handling examples:
 - For MathTex: MathTex(r"\\frac{1}{2}") or MathTex("\\\\frac{1}{2}")
@@ -48,17 +59,17 @@ Truth table generation example:
 
 The animation should effectively teach the concept through visual storytelling and smooth transitions.
 
-Return ONLY the Python code, nothing else.`
-}
+Return ONLY the Python code, nothing else.`;
+};
 
 const manimCodeSchema = z.object({
-  className: z.string().describe("Python class name for the scene"),
-  code: z.string().describe("Complete Manim Python code for the scene"),
-  filename: z.string().describe("Python filename for the scene"),
+    className: z.string().describe("Python class name for the scene"),
+    code: z.string().describe("Complete Manim Python code for the scene"),
+    filename: z.string().describe("Python filename for the scene"),
 });
 
 const generateMasterFileContent = (lessonPlan: any, sceneFiles: any[]) => {
-  return `# Master Manim Animation File
+    return `# Master Manim Animation File
 # Generated from AI lesson plan: ${lessonPlan.title}
 from manim import *
 
@@ -78,9 +89,13 @@ class MasterExplainerScene(Scene):
         
         # Scene list
         scene_list = VGroup()
-        ${sceneFiles.map((scene, index) => `
-        scene_${index + 1}_text = Text("Scene ${index + 1}: ${scene.id.replace('scene-', '').replace('-', ' ').toUpperCase()}", font_size=24)
-        scene_list.add(scene_${index + 1}_text)`).join('\n        ')}
+        ${sceneFiles
+            .map(
+                (scene, index) => `
+        scene_${index + 1}_text = Text("Scene ${index + 1}: ${scene.id.replace("scene-", "").replace("-", " ").toUpperCase()}", font_size=24)
+        scene_list.add(scene_${index + 1}_text)`
+            )
+            .join("\n        ")}
         
         scene_list.arrange(DOWN, aligned_edge=LEFT, buff=0.3)
         scene_list.next_to(subtitle, DOWN, buff=1)
@@ -108,130 +123,146 @@ if __name__ == "__main__":
     master.render()
     
     # Individual scenes should be rendered separately:
-    ${sceneFiles.map(scene => `# python ${scene.filename}`).join('\n    ')}
+    ${sceneFiles.map((scene) => `# python ${scene.filename}`).join("\n    ")}
 `;
-}
+};
 
 const outputSchema = z.object({
-  lessonPlan: z.object({
-    title: z.string(),
-    objectives: z.array(z.string()),
-  }),
-  sceneFiles: z.array(z.object({
-    id: z.string(),
-    className: z.string(),
-    filename: z.string(),
-    code: z.string(),
-    validationResults: z.object({
-      syntaxValid: z.boolean(),
-      manimCompatible: z.boolean(),
-      warnings: z.array(z.string()),
-      suggestions: z.array(z.string()),
+    lessonPlan: z.object({
+        title: z.string(),
+        objectives: z.array(z.string()),
     }),
-  })),
-  masterFile: z.object({
-    filename: z.string(),
-    content: z.string(),
-  }),
-  totalScenes: z.number(),
+    sceneFiles: z.array(
+        z.object({
+            id: z.string(),
+            className: z.string(),
+            filename: z.string(),
+            code: z.string(),
+            validationResults: z.object({
+                syntaxValid: z.boolean(),
+                manimCompatible: z.boolean(),
+                warnings: z.array(z.string()),
+                suggestions: z.array(z.string()),
+            }),
+        })
+    ),
+    masterFile: z.object({
+        filename: z.string(),
+        content: z.string(),
+    }),
+    totalScenes: z.number(),
 });
 
 // Step to process all scenes from lesson plan and generate Manim code
 export const processScenesStep = createStep({
-  id: "process-scenes",
-  description: "Process each scene from lesson plan and generate Manim code",
-  inputSchema: z.object({
-    lessonPlan: z.object({
-      title: z.string(),
-      objectives: z.array(z.string()),
-      scenes: z.array(z.object({
-        title: z.string(),
-        description: z.string(),
-        manimConcepts: z.array(z.string()),
-        keyPoints: z.array(z.string()),
-        estimatedDuration: z.number(),
-      })),
+    id: "process-scenes",
+    description: "Generate Manim code from approved scene outlines",
+    inputSchema: z.object({
+        approvedOutline: z.object({
+            videoTitle: z.string(),
+            scenes: z.array(z.any()),
+            rawRefinedOutline: z.string(),
+        }),
     }),
-  }),
-  outputSchema: outputSchema,
-  execute: async (params) => {
-    console.log("🎬 Processing scenes individually with AI-generated Manim code");
-    
-    const lessonPlan = params['inputData']['lessonPlan']['object'];
-    const scenes = lessonPlan['scenes'];
+    outputSchema: outputSchema,
+    execute: async (params) => {
+        console.log("🎬 Generating Manim code from approved scene outlines");
 
-    if (!scenes || !scenes.length) {
-      throw new Error("No lesson plan or scenes found in context");
-    }
-    
-    // Process each scene through the AI agent
-    const sceneFiles: any[] = [];
-    
-    for (let i = 0; i < scenes.length; i++) {
-      const scene = scenes[i];
-      console.log(`🤖 Generating Manim code for scene ${i + 1}: ${scene.title}`);
-      
-      try {
-        // Use the Manim code agent directly to generate the code
-        const result = await manimCodeAgent.generateLegacy([{
-          role: "user",
-          content: generatePrompt(
-            scene.title,
-            scene.description,
-            scene.manimConcepts || [],
-            scene.keyPoints || [],
-            scene.estimatedDuration || 60
-          )
-        }], {
-          output: manimCodeSchema,
-        });
+        const approvedOutline = params["inputData"]["approvedOutline"];
+        const scenes = approvedOutline.scenes;
 
-        
-        sceneFiles.push({
-          id: `scene-${i + 1}`,
-          className: result['object'].className,
-          filename: result['object'].filename,
-          code: result['object'].code,
-          validationResults: {
-            syntaxValid: true,
-            manimCompatible: true,
-            warnings: [],
-            suggestions: [],
-          },
-        });
+        if (!scenes || !scenes.length) {
+            throw new Error("No approved outline or scenes found in context");
+        }
 
-      } catch (error) {
-        console.error(`❌ Error generating code for scene "${scene.title}":`, error);
-        // Continue with other scenes even if one fails
-        sceneFiles.push({
-          id: `scene-${i + 1}`,
-          className: `Scene${i + 1}`,
-          filename: `scene_${i + 1}.py`,
-          code: `# Error generating code for scene: ${scene.title}\n# ${error}`,
-          validationResults: {
-            syntaxValid: false,
-            manimCompatible: false,
-            warnings: [`Failed to generate code: ${error}`],
-            suggestions: ["Retry code generation"],
-          },
-        });
-      }
-    }
+        // Process each scene through the AI agent
+        const sceneFiles: any[] = [];
 
-    // Create master file with dynamic scene imports
-    const masterFileContent = generateMasterFileContent(lessonPlan, sceneFiles);
+        for (let i = 0; i < scenes.length; i++) {
+            const scene = scenes[i];
+            console.log(
+                `🤖 Generating Manim code for scene ${scene.number}: ${scene.title}`
+            );
 
-    return {
-      lessonPlan: { 
-        title: lessonPlan.title, 
-        objectives: lessonPlan.objectives || ["Learn concepts", "Apply knowledge"] 
-      },
-      sceneFiles,
-      masterFile: {
-        filename: "master_animation.py",
-        content: masterFileContent,
-      },
-      totalScenes: sceneFiles.length,
-    };
-  },
+            try {
+                // Use the Manim code agent directly to generate the code
+                const result = await manimCodeAgent.generateLegacy(
+                    [
+                        {
+                            role: "user",
+                            content: generatePrompt(scene),
+                        },
+                    ],
+                    {
+                        output: manimCodeSchema,
+                    }
+                );
+
+                sceneFiles.push({
+                    id: `scene-${scene.number}`,
+                    className: result["object"].className,
+                    filename: result["object"].filename,
+                    code: result["object"].code,
+                    validationResults: {
+                        syntaxValid: true,
+                        manimCompatible: true,
+                        warnings: [],
+                        suggestions: [],
+                    },
+                });
+            } catch (error) {
+                console.error(
+                    `❌ Error generating code for scene "${scene.title}":`,
+                    error
+                );
+                // Continue with other scenes even if one fails
+                sceneFiles.push({
+                    id: `scene-${i + 1}`,
+                    className: `Scene${i + 1}`,
+                    filename: `scene_${i + 1}.py`,
+                    code: `# Error generating code for scene: ${scene.title}\n# ${error}`,
+                    validationResults: {
+                        syntaxValid: false,
+                        manimCompatible: false,
+                        warnings: [`Failed to generate code: ${error}`],
+                        suggestions: ["Retry code generation"],
+                    },
+                });
+            }
+        }
+
+        // Create master file with dynamic scene imports
+        const imports = sceneFiles
+            .map(
+                (_, index) => `from scene_${index + 1} import Scene${index + 1}`
+            )
+            .join("\n");
+        const sceneCalls = sceneFiles
+            .map(
+                (_, index) =>
+                    `        # Scene ${index + 1}\n        self.add(Scene${index + 1}())\n        self.wait(2)`
+            )
+            .join("\n\n");
+
+        const masterFileContent = `from manim import *
+${imports}
+
+class MasterExplainerScene(Scene):
+    def construct(self):
+${sceneCalls}
+`;
+
+        return {
+            lessonPlan: {
+                title: approvedOutline.videoTitle,
+                objectives: ["Learn concepts", "Apply knowledge"],
+            },
+            sceneFiles,
+            masterFile: {
+                filename: "master_animation.py",
+                content: masterFileContent,
+            },
+            totalScenes: sceneFiles.length,
+        };
+    },
 });
