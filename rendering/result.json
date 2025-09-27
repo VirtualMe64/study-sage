@@ -1,0 +1,78 @@
+{
+  "lessonPlan": {
+    "title": "Explaining De Morgan's Law",
+    "objectives": [
+      "Understand the basic concepts of De Morgan's Law",
+      "Visualize the laws using Venn diagrams",
+      "Apply De Morgan's Law to logical expressions",
+      "Explore real-world applications of De Morgan's Law"
+    ]
+  },
+  "sceneFiles": [
+    {
+      "id": "scene-1",
+      "className": "IntroductionToDeMorgansLaw",
+      "filename": "introduction_to_de_morgans_law.py",
+      "code": "from manim import *\n\nclass IntroductionToDeMorgansLaw(Scene):\n    def construct(self):\n        # Title of the scene\n        title = Text(\"Introduction to De Morgan's Law\", font_size=36)\n        self.play(Write(title))\n        self.wait(1)\n        self.play(FadeOut(title))\n\n        # Definition of De Morgan's Law\n        definition = MathTex(r\"\\neg(A \\cap B) = \\neg A \\cup \\neg B\", font_size=48)\n        self.play(Create(definition))\n        self.wait(2)\n\n        # Explanation of the definition\n        explanation = Text(\"This means that the negation of the intersection is the union of the negations.\", font_size=24)\n        explanation.next_to(definition, DOWN)\n        self.play(Write(explanation))\n        self.wait(3)\n\n        # Importance in mathematics and logic\n        importance_title = Text(\"Importance in Mathematics and Logic\", font_size=30)\n        importance_title.next_to(explanation, DOWN, buff=1)\n        self.play(Create(importance_title))\n        self.wait(1)\n\n        importance_points = VGroup(\n            Text(\"1. Simplifies logical expressions.\", font_size=24),\n            Text(\"2. Fundamental in set theory.\", font_size=24),\n            Text(\"3. Used in computer science and programming.\", font_size=24)\n        )\n        importance_points.arrange(DOWN, buff=0.5)\n        importance_points.next_to(importance_title, DOWN)\n\n        # Animate each point with a delay\n        for point in importance_points:\n            self.play(Write(point))\n            self.wait(1)\n\n        # Final message\n        final_message = Text(\"Understanding De Morgan's Law is crucial!\", font_size=28)\n        final_message.next_to(importance_points, DOWN, buff=1)\n        self.play(Create(final_message))\n        self.wait(2)\n\n        # End of the scene\n        self.play(FadeOut(importance_points), FadeOut(final_message))\n        self.wait(1)",
+      "validationResults": {
+        "syntaxValid": true,
+        "manimCompatible": true,
+        "warnings": [],
+        "suggestions": []
+      }
+    },
+    {
+      "id": "scene-2",
+      "className": "VisualizingWithVennDiagrams",
+      "filename": "visualizing_with_venn_diagrams.py",
+      "code": "from manim import *\n\nclass VisualizingWithVennDiagrams(Scene):\n    def construct(self):\n        # Create circles for sets A and B\n        circle_a = Circle(radius=1.5, color=BLUE, fill_opacity=0.5).shift(LEFT)\n        circle_b = Circle(radius=1.5, color=GREEN, fill_opacity=0.5).shift(RIGHT)\n\n        # Create labels for sets A and B\n        label_a = MathTex(r\"A\").next_to(circle_a, UP)\n        label_b = MathTex(r\"B\").next_to(circle_b, UP)\n\n        # Create the union and intersection labels\n        union_label = MathTex(r\"A \\, \\cup \\, B\").to_edge(UP)\n        intersection_label = MathTex(r\"A \\, \\cap \\, B\").to_edge(DOWN)\n\n        # Create the complement labels\n        complement_union_label = MathTex(r\"(A \\, \\cup \\, B)'\").next_to(union_label, DOWN)\n        complement_intersection_label = MathTex(r\"(A \\, \\cap \\, B)'\").next_to(intersection_label, DOWN)\n\n        # Add circles and labels to the scene\n        self.play(Create(circle_a), Create(circle_b), FadeIn(label_a), FadeIn(label_b))\n        self.wait(1)\n\n        # Show the union of A and B\n        self.play(FadeIn(union_label))\n        self.wait(1)\n\n        # Highlight the area of (A ∪ B)'\n        union_complement_area = Circle(radius=2, color=YELLOW, fill_opacity=0.5)\n        self.play(Create(union_complement_area))\n        self.play(FadeIn(complement_union_label))\n        self.wait(1)\n\n        # Show the first law: (A ∪ B)' = A' ∩ B'\n        self.play(FadeOut(union_complement_area), FadeOut(union_label), FadeOut(complement_union_label))\n        self.play(FadeIn(intersection_label))\n        self.wait(1)\n\n        # Highlight the area of A' ∩ B'\n        intersection_complement_area = Circle(radius=2, color=ORANGE, fill_opacity=0.5)\n        self.play(Create(intersection_complement_area))\n        self.play(FadeIn(complement_intersection_label))\n        self.wait(1)\n\n        # Transition to the second law: (A ∩ B)' = A' ∪ B'\n        self.play(FadeOut(intersection_complement_area), FadeOut(intersection_label), FadeOut(complement_intersection_label))\n        self.play(FadeIn(union_label))\n        self.wait(1)\n\n        # Highlight the area of (A ∩ B)'\n        self.play(Create(union_complement_area))\n        self.play(FadeIn(complement_union_label))\n        self.wait(1)\n\n        # Show the final result\n        self.play(FadeOut(union_complement_area), FadeOut(union_label), FadeOut(complement_union_label))\n        self.wait(1)\n\n        # End the scene\n        self.play(FadeOut(circle_a), FadeOut(circle_b), FadeOut(label_a), FadeOut(label_b))\n        self.wait(1)",
+      "validationResults": {
+        "syntaxValid": true,
+        "manimCompatible": true,
+        "warnings": [],
+        "suggestions": []
+      }
+    },
+    {
+      "id": "scene-3",
+      "className": "LogicalExpressionsAndTruthTables",
+      "filename": "logical_expressions_and_truth_tables.py",
+      "code": "from manim import *\n\nclass LogicalExpressionsAndTruthTables(Scene):\n    def construct(self):\n        # Title of the scene\n        title = Text(\"Logical Expressions and Truth Tables\", font_size=36)\n        self.play(FadeIn(title))\n        self.wait(1)\n        self.play(FadeOut(title))\n\n        # De Morgan's Laws\n        law1 = MathTex(r\"\\neg (A \\land B) \\equiv (\\neg A) \\lor (\\neg B)\")\n        law2 = MathTex(r\"\\neg (A \\lor B) \\equiv (\\neg A) \\land (\\neg B\")\n        self.play(Create(law1))\n        self.wait(2)\n        self.play(Transform(law1, law2))\n        self.wait(2)\n\n        # Create truth tables\n        table1 = MathTex(r\"\\begin{array}{|c|c|c|c|}\n        \\hline\n        A & B & \\neg (A \\land B) & (\\neg A) \\lor (\\neg B) \\\\\n        \\hline\n        T & T & F & F \\\\\n        T & F & T & T \\\\\n        F & T & T & T \\\\\n        F & F & T & T \\\\\n        \\hline\n        \\end{array}\")\n        table2 = MathTex(r\"\\begin{array}{|c|c|c|c|}\n        \\hline\n        A & B & \\neg (A \\lor B) & (\\neg A) \\land (\\neg B) \\\\\n        \\hline\n        T & T & F & F \\\\\n        T & F & F & F \\\\\n        F & T & F & F \\\\\n        F & F & T & T \\\\\n        \\hline\n        \\end{array}\")\n\n        # Display the first truth table\n        self.play(Create(table1))\n        self.wait(3)\n\n        # Transition to the second truth table\n        self.play(Transform(table1, table2))\n        self.wait(3)\n\n        # Conclusion\n        conclusion = Text(\"De Morgan's Laws are fundamental in logic!\", font_size=24)\n        self.play(FadeIn(conclusion))\n        self.wait(2)\n        self.play(FadeOut(conclusion))\n        self.wait(1)",
+      "validationResults": {
+        "syntaxValid": true,
+        "manimCompatible": true,
+        "warnings": [],
+        "suggestions": []
+      }
+    },
+    {
+      "id": "scene-4",
+      "className": "RealWorldApplications",
+      "filename": "real_world_applications.py",
+      "code": "from manim import *\n\nclass RealWorldApplications(Scene):\n    def construct(self):\n        # Title of the scene\n        title = Tex(r\"\\textbf{Real-World Applications of De Morgan's Law}\")\n        title.scale(1.5)\n        self.play(Create(title))\n        self.wait(1)\n\n        # Introduction to De Morgan's Law\n        intro = Tex(r\"\\text{De Morgan's Law states:}\")\n        self.play(ReplacementTransform(title, intro))\n        self.wait(1)\n\n        # Displaying De Morgan's Law\n        law = MathTex(r\"\\neg(A \\land B) \\equiv (\\neg A) \\lor (\\neg B)\")\n        law.next_to(intro, DOWN)\n        self.play(Create(law))\n        self.wait(2)\n\n        # Discussing applications in programming\n        programming_app = Tex(r\"\\text{Applications in Programming:}\")\n        programming_app.next_to(law, DOWN)\n        self.play(ReplacementTransform(law, programming_app))\n        self.wait(1)\n\n        # Example of programming application\n        example_code = Tex(r\"\\text{if } \\neg(A \\land B) \\text{ then } \\neg A \\lor \\neg B\").next_to(programming_app, DOWN)\n        self.play(Create(example_code))\n        self.wait(2)\n\n        # Transition to logic circuits\n        logic_circuits = Tex(r\"\\text{Applications in Logic Circuits:}\")\n        logic_circuits.next_to(example_code, DOWN)\n        self.play(ReplacementTransform(example_code, logic_circuits))\n        self.wait(1)\n\n        # Example of logic circuit application\n        circuit_example = MathTex(r\"\\text{NOT}(A \\land B) \\equiv \\text{NOT } A \\lor \\text{NOT } B\").next_to(logic_circuits, DOWN)\n        self.play(Create(circuit_example))\n        self.wait(2)\n\n        # Conclusion about importance\n        conclusion = Tex(r\"\\text{Importance: Simplifying Expressions}\")\n        conclusion.next_to(circuit_example, DOWN)\n        self.play(ReplacementTransform(circuit_example, conclusion))\n        self.wait(1)\n\n        # Final wait before ending the scene\n        self.wait(2)",
+      "validationResults": {
+        "syntaxValid": true,
+        "manimCompatible": true,
+        "warnings": [],
+        "suggestions": []
+      }
+    },
+    {
+      "id": "scene-5",
+      "className": "ConclusionAndSummary",
+      "filename": "conclusion_and_summary.py",
+      "code": "from manim import *\n\nclass ConclusionAndSummary(Scene):\n    def construct(self):\n        # Title of the scene\n        title = Text(\"Conclusion and Summary\", font_size=48)\n        self.play(Create(title))\n        self.wait(1)\n\n        # Key points to summarize\n        de_morgan_laws = MathTex(r\"\\neg (A \\land B) \\equiv (\\neg A \\lor \\neg B\")\n        encouragement = Text(\"Explore further topics in logic!\", font_size=36)\n\n        # Position the key points below the title\n        de_morgan_laws.next_to(title, DOWN, buff=0.5)\n        encouragement.next_to(de_morgan_laws, DOWN, buff=0.5)\n\n        # Animate the appearance of De Morgan's Laws\n        self.play(Write(de_morgan_laws))\n        self.wait(2)\n\n        # Animate the removal of De Morgan's Laws letter by letter\n        self.play(RemoveTextLetterByLetter(de_morgan_laws))\n        self.wait(1)\n\n        # Animate the encouragement text\n        self.play(Write(encouragement))\n        self.wait(2)\n\n        # Fade out the encouragement text\n        self.play(FadeOut(encouragement))\n        self.wait(1)\n\n        # Fade out the title\n        self.play(FadeOut(title))\n        self.wait(1)",
+      "validationResults": {
+        "syntaxValid": true,
+        "manimCompatible": true,
+        "warnings": [],
+        "suggestions": []
+      }
+    }
+  ],
+  "masterFile": {
+    "filename": "master_animation.py",
+    "content": "# Master Manim Animation File\n# Generated from AI lesson plan: Explaining De Morgan's Law\nfrom manim import *\n\nclass MasterExplainerScene(Scene):\n    def construct(self):\n        # Title slide for the lesson\n        title = Text(\"Explaining De Morgan's Law\", font_size=48, color=WHITE)\n        title.to_edge(UP, buff=0.5)\n        \n        subtitle = Text(\"Educational Animation Series\", font_size=32, color=GRAY)\n        subtitle.next_to(title, DOWN, buff=0.5)\n        \n        # Show title\n        self.play(Write(title), run_time=2)\n        self.play(FadeIn(subtitle), run_time=1)\n        self.wait(2)\n        \n        # Scene list\n        scene_list = VGroup()\n        \n        scene_1_text = Text(\"Scene 1: 1\", font_size=24)\n        scene_list.add(scene_1_text)\n        \n        scene_2_text = Text(\"Scene 2: 2\", font_size=24)\n        scene_list.add(scene_2_text)\n        \n        scene_3_text = Text(\"Scene 3: 3\", font_size=24)\n        scene_list.add(scene_3_text)\n        \n        scene_4_text = Text(\"Scene 4: 4\", font_size=24)\n        scene_list.add(scene_4_text)\n        \n        scene_5_text = Text(\"Scene 5: 5\", font_size=24)\n        scene_list.add(scene_5_text)\n        \n        scene_list.arrange(DOWN, aligned_edge=LEFT, buff=0.3)\n        scene_list.next_to(subtitle, DOWN, buff=1)\n        \n        # Show scene list\n        self.play(Write(scene_list), run_time=3)\n        self.wait(2)\n        \n        # Fade out title slide\n        self.play(FadeOut(title), FadeOut(subtitle), FadeOut(scene_list))\n        self.wait(1)\n        \n        # Note: Individual scenes should be rendered separately\n        # This master scene serves as an introduction/overview\n        \n        # End with a conclusion\n        conclusion = Text(\"Thank you for watching!\", font_size=36, color=WHITE)\n        self.play(Write(conclusion), run_time=2)\n        self.wait(2)\n        self.play(FadeOut(conclusion))\n\nif __name__ == \"__main__\":\n    # Render the master overview scene\n    master = MasterExplainerScene()\n    master.render()\n    \n    # Individual scenes should be rendered separately:\n    # python introduction_to_de_morgans_law.py\n    # python visualizing_with_venn_diagrams.py\n    # python logical_expressions_and_truth_tables.py\n    # python real_world_applications.py\n    # python conclusion_and_summary.py\n"
+  },
+  "totalScenes": 5
+}

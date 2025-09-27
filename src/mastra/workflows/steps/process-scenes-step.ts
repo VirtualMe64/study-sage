@@ -23,11 +23,28 @@ Requirements:
 8. Make the class name descriptive (based on the scene title)
 9. CRITICAL: Use Create instead of ShowCreation (ShowCreation is deprecated)
 10. CRITICAL: Properly escape backslashes in strings - use raw strings (r"") or double backslashes (\\\\) for LaTeX/MathTex
+11. CRITICAL: NEVER use multiline strings - keep all MathTex/Tex content on single lines
+12. CRITICAL: For complex LaTeX like tables, use string concatenation or variables, NOT multiline strings
 
 String handling examples:
 - For MathTex: MathTex(r"\\frac{1}{2}") or MathTex("\\\\frac{1}{2}")
 - For Tex: Tex(r"$x^2 + y^2 = r^2$") or Tex("$x^2 + y^2 = r^2$")
+- For simple tables: MathTex(r"\\begin{array}{cc} a & b \\\\ c & d \\end{array}")
+- For complex tables/matrices: Generate programmatically using Python string operations
 - Always use raw strings (r"") for mathematical expressions to avoid backslash issues
+- NEVER break strings across multiple lines in the Python code
+
+Complex LaTeX generation examples:
+- table_content = "\\\\\\\\".join([f"{row[0]} & {row[1]}" for row in data])
+- table_latex = rf"\\begin{{array}}{{cc}} {table_content} \\end{{array}}"
+- truth_table = MathTex(table_latex)
+
+Truth table generation example:
+- truth_data = [["T", "T", "F"], ["T", "F", "T"], ["F", "T", "T"], ["F", "F", "T"]]
+- header = "A & B & \\\\neg(A \\\\land B)"
+- rows = " \\\\\\\\ ".join([" & ".join(row) for row in truth_data])
+- table_latex = rf"\\begin{{array}}{{|c|c|c|}} \\hline {header} \\\\\\\\ \\hline {rows} \\\\\\\\ \\hline \\end{{array}}"
+- table = MathTex(table_latex)
 
 The animation should effectively teach the concept through visual storytelling and smooth transitions.
 

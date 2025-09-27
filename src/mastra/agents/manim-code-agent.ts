@@ -33,6 +33,9 @@ Code requirements:
 - Make content educational and visually clear
 - NEVER use ShowCreation - use Create instead (ShowCreation is deprecated)
 - Properly handle backslashes in strings - use raw strings (r"") for LaTeX/MathTex
+- CRITICAL: NEVER use multiline strings - keep all MathTex/Tex on single lines
+- For complex LaTeX (tables, matrices), use Python code to generate the strings programmatically
+- Example: Generate truth tables using list comprehensions and string formatting
 
 Focus on creating animations that effectively teach the given concept through visual storytelling.`,
   
