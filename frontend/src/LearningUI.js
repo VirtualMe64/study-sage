@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 
 export default function LearningUI() {
   const [text, setText] = useState("");
+  const [showVideo, setShowVideo] = useState(false);
+  const [loading, setLoading] = useState(false);
   const textareaRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Auto-expand text area
+  // Auto-expand textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -14,7 +16,7 @@ export default function LearningUI() {
     }
   }, [text]);
 
-  // Dynamic drifting + rotating network background
+  // Background animation
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -95,7 +97,7 @@ export default function LearningUI() {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center bg-gradient-to-br from-[#010A17] to-[#28497C] pt-60 pb-24 overflow-hidden">
+    <div className="relative min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#010A17] to-[#28497C] pt-40 pb-24 overflow-hidden">
       {/* Background Canvas */}
       <canvas
         ref={canvasRef}
@@ -115,12 +117,21 @@ export default function LearningUI() {
       />
 
       {/* Logo + Text */}
-      <div className="absolute top-2 left-2 flex items-center z-20">
-        <img
-          src="/logo512.png"
-          alt="Logo"
-          className="w-[96px] h-[144px]"
-        />
+      <div
+        className="absolute top-2 left-2 flex items-center z-20 cursor-pointer"
+        onClick={() => {
+          if (loading) {
+            setLoading(false);
+            setShowVideo(true);
+          } else if (showVideo) {
+            setShowVideo(false);
+            setText(""); // reset when returning
+          } else {
+            setText(""); // reset if already on main
+          }
+        }}
+      >
+        <img src="/logo512.png" alt="Logo" className="w-[96px] h-[144px]" />
         <div
           className="ml-2 font-nunito font-bold text-[#F8F8F2]"
           style={{
@@ -136,55 +147,83 @@ export default function LearningUI() {
         </div>
       </div>
 
-      {/* Foreground UI */}
-      <div className="relative text-center p-6 rounded-lg shadow-lg bg-[#B4BFD2]/70 backdrop-blur-sm flex flex-col items-center w-full max-w-3xl z-10">
-        <h1 className="text-3xl font-nunito font-bold text-[#051B3D] mb-6">
-          What would you like to learn today?
-        </h1>
+      {/* Main Content */}
+      {!loading && !showVideo ? (
+        <div className="relative text-center p-6 rounded-lg shadow-lg bg-[#B4BFD2]/70 backdrop-blur-sm flex flex-col items-center w-full max-w-3xl z-10 -mt-12">
+          <h1 className="text-3xl font-nunito font-bold text-[#051B3D] mb-6">
+            What would you like to learn today?
+          </h1>
 
-        {/* Textarea with upload button */}
-        <div className="relative w-full max-w-2xl mb-4">
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type your query..."
-            className="w-full px-4 py-3 pr-12 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
-            style={{ minHeight: "3rem" }}
+          {/* Textarea */}
+          <div className="relative w-full max-w-2xl mb-4">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type your query..."
+              className="w-full px-4 py-3 pr-12 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
+              style={{ minHeight: "3rem" }}
+            />
+            <button className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-[#051B3D] text-white hover:bg-[#528E78]">
+              +
+            </button>
+          </div>
+
+          {/* Buttons + dropdowns */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
+                Complexity
+              </label>
+              <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white">
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
+                Depth
+              </label>
+              <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white">
+                <option>Overview</option>
+                <option>Detailed</option>
+                <option>Comprehensive</option>
+              </select>
+            </div>
+            <button
+              className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#28497C] transition-colors"
+              onClick={() => {
+                setLoading(true);
+                setText(""); // reset text when starting
+              }}
+            >
+              Go
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Loading Screen */}
+      {loading && !showVideo && (
+        <div className="relative w-full max-w-4xl p-6 rounded-lg shadow-lg bg-[#B4BFD2]/70 backdrop-blur-sm flex flex-col items-center justify-center h-[60vh] mb-8 z-10 -mt-12">
+          <div className="animate-spin border-4 border-[#051B3D] border-t-transparent rounded-full w-12 h-12 mb-4"></div>
+          <p className="text-[#051B3D] font-nunito font-bold text-lg">
+            Loading...
+          </p>
+        </div>
+      )}
+
+      {/* Video Screen */}
+      {!loading && showVideo && (
+        <div className="relative w-full max-w-4xl p-6 rounded-lg shadow-lg bg-[#B4BFD2]/70 backdrop-blur-sm flex items-center justify-center h-[60vh] mb-8 z-10 -mt-12">
+          <video
+            src="/your-video.mp4"
+            controls
+            className="w-full h-full rounded-lg object-contain"
           />
-          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-[#051B3D] text-white hover:bg-[#528E78]">
-            +
-          </button>
         </div>
-
-        {/* Buttons + dropdowns row */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Complexity dropdown */}
-          <div className="flex flex-col">
-            <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">Complexity</label>
-            <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D]">
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-            </select>
-          </div>
-
-          {/* Depth dropdown */}
-          <div className="flex flex-col">
-            <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">Depth</label>
-            <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D]">
-              <option>Overview</option>
-              <option>Detailed</option>
-              <option>Comprehensive</option>
-            </select>
-          </div>
-
-          {/* Go button */}
-          <button className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#528E78] transition-colors">
-            Go
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

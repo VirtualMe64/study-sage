@@ -6,6 +6,7 @@ Generates scene-by-scene scripts for educational animations using OpenAI API
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import asyncio
@@ -18,6 +19,8 @@ from tqdm.asyncio import tqdm
 
 # Default OpenAI model to use
 DEFAULT_MODEL = "gpt-5-nano"
+
+APPROVED_FONTS = ['C059', 'D050000L', 'DejaVu Math TeX Gyre', 'DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif', 'Droid Sans Fallback', 'FreeMono', 'FreeSans', 'FreeSerif', 'Inconsolata', 'Lato', 'Liberation Mono', 'Liberation Sans', 'Liberation Serif', 'MathJax_AMS', 'MathJax_Caligraphic', 'MathJax_Fraktur', 'MathJax_Main', 'MathJax_Math', 'MathJax_SansSerif', 'MathJax_Script', 'MathJax_Size1', 'MathJax_Size2', 'MathJax_Size3', 'MathJax_Size4', 'MathJax_Typewriter', 'MathJax_Vector', 'MathJax_Vector-Bold', 'MathJax_WinChrome', 'MathJax_WinIE6', 'Monospace', 'Nimbus Mono PS', 'Nimbus Roman', 'Nimbus San']
 
 def get_user_input(prompt: str, skip_confirm: bool = False) -> bool:
     """
@@ -99,6 +102,12 @@ The scenes must include:
 
 Focus on visual demonstrations and clear explanations of why the concept works.
 
+IMPORTANT JSON FORMATTING RULES:
+- Use \\\" for quotes within strings
+- Ensure all strings are properly escaped
+- No control characters or unescaped special characters
+- Validate JSON syntax before responding
+
 Return ONLY the JSON response, no additional text or formatting."""
 
 def generate_scene_script_prompt(scene: Dict[str, Any]) -> str:
@@ -117,72 +126,291 @@ SCENE TO EXPAND:
 
 REQUIREMENTS:
 1. Expand the scene description with much more detail
-2. Add a "script" field with detailed animation instructions
-3. The script should include:
-   - Specific Manim objects to create (Text, MathTex, Circle, etc.)
-   - Exact positioning data (coordinates, alignment, buff values)
-   - Animation sequence and timing (self.play(), self.wait())
-   - Color schemes and styling details
+2. Add a "script" field with detailed animation instructions in PLAIN ENGLISH
+3. The script should describe animations in descriptive language, NOT code:
+   - What visual elements appear and how they move
+   - Where elements are positioned on screen (left, right, center, top, bottom)
+   - How elements relate to each other spatially
+   - The sequence and timing of animations
+   - Color schemes and visual styling
    - Transitions between elements
-   - Camera movements if needed
-   - Specific LaTeX/MathTex content
-   - Grouping and arrangement instructions
+   - Camera movements and focus changes
+   - Mathematical content and equations
+   - Grouping and arrangement of visual elements
+
+IMPORTANT: Write descriptions in natural English, not code. For example:
+- Instead of "self.play(Write(title), run_time=2)" write "The title fades in smoothly over 2 seconds"
+- Instead of "title.next_to(equation, UP, buff=0.5)" write "The title appears above the equation with some spacing"
+- Instead of "Circle(radius=1, color=BLUE)" write "A blue circle appears with a radius of 1 unit"
 
 OUTPUT FORMAT (JSON):
 {{
     "expanded_description": "Much more detailed description of what happens in this scene",
     "script": {{
         "setup": [
-            "Detailed setup instructions for creating objects",
-            "Positioning and styling details",
-            "Initial state preparations"
+            "Three dots appear on the screen forming the corners of a right triangle",
+            "The triangle is positioned in the center of the screen with equal spacing",
+            "Initial labels are prepared but not yet visible"
         ],
         "animations": [
             {{
                 "step": 1,
-                "action": "self.play(Write(title), run_time=2)",
-                "description": "Write the main title with 2-second duration",
-                "objects": ["title"],
-                "timing": 2
+                "action": "The three corner dots fade in one by one, starting from the bottom left",
+                "description": "Each dot appears with a gentle fade-in effect, creating the triangle vertices",
+                "objects": ["corner_dots"],
+                "timing": 3
             }},
             {{
                 "step": 2,
-                "action": "self.wait(1)",
-                "description": "Pause for emphasis",
-                "objects": [],
-                "timing": 1
+                "action": "Lines draw themselves between each pair of dots, forming the triangle sides",
+                "description": "The lines animate from dot to dot, creating the triangle shape",
+                "objects": ["triangle_sides"],
+                "timing": 2
+            }},
+            {{
+                "step": 3,
+                "action": "Labels 'a', 'b', and 'c' appear next to each corner",
+                "description": "The labels fade in near their respective corners with small arrows pointing to them",
+                "objects": ["corner_labels"],
+                "timing": 2
+            }},
+            {{
+                "step": 4,
+                "action": "The Pythagorean theorem equation appears below the triangle",
+                "description": "The equation 'a² + b² = c²' slides up from the bottom of the screen",
+                "objects": ["equation"],
+                "timing": 2
             }}
         ],
         "cleanup": [
-            "Instructions for transitioning out of the scene",
-            "Object removal or transformation details"
+            "The triangle and equation fade out together",
+            "A transition effect prepares for the next scene"
         ],
         "total_estimated_time": "Estimated total scene duration in seconds",
         "manim_objects": {{
-            "text_objects": ["List of all text objects to create"],
-            "math_objects": ["List of all mathematical objects"],
-            "geometric_objects": ["List of all shapes and geometric elements"],
-            "groups": ["List of VGroup arrangements"]
+            "text_objects": ["Corner labels (a, b, c)", "Equation text"],
+            "math_objects": ["Pythagorean theorem equation"],
+            "geometric_objects": ["Three corner dots", "Three triangle sides"],
+            "groups": ["Complete triangle group", "Label group"]
         }},
         "positioning_guide": {{
-            "center": "Main content positioning",
-            "left_side": "Left side elements",
-            "right_side": "Right side elements",
-            "top": "Header/title positioning",
-            "bottom": "Footer elements"
+            "center": "Triangle positioned in the center of the screen",
+            "left_side": "Left corner dot and label 'a'",
+            "right_side": "Right corner dot and label 'b'",
+            "top": "Top corner dot and label 'c'",
+            "bottom": "Pythagorean equation below the triangle"
         }},
         "color_scheme": {{
-            "primary": "Main color for key elements",
-            "secondary": "Supporting color",
-            "accent": "Highlight color",
-            "background": "Background color"
+            "primary": "Blue for the triangle and main elements",
+            "secondary": "White for labels and text",
+            "accent": "Yellow for highlighting the equation",
+            "background": "Dark background for contrast"
         }}
     }}
 }}
 
-Be extremely detailed and specific. Include exact Manim code snippets, precise positioning, and comprehensive animation sequences. The script should be ready for a Manim developer to implement directly.
+Be extremely detailed and specific. Describe the visual story in natural language, focusing on what the viewer sees and how elements move and relate to each other. The descriptions should be clear enough for a Manim developer to understand exactly what to create and animate.
+
+IMPORTANT JSON FORMATTING RULES:
+- Use \\\" for quotes within strings
+- Ensure all strings are properly escaped
+- No control characters or unescaped special characters
+- Validate JSON syntax before responding
 
 Return ONLY the JSON response, no additional text."""
+
+def clean_json_response(response: str) -> str:
+    """
+    Clean JSON response by removing common issues that cause parsing errors
+    """
+    import re
+    
+    # Remove any text before the first { or after the last }
+    start_idx = response.find('{')
+    end_idx = response.rfind('}')
+    
+    if start_idx == -1 or end_idx == -1 or start_idx >= end_idx:
+        return response
+    
+    cleaned = response[start_idx:end_idx + 1]
+    
+    # Fix common JSON issues
+    # 1. Remove control characters except \n, \r, \t
+    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+    
+    # 2. Use character-by-character approach for proper escaping
+    result = []
+    i = 0
+    in_string = False
+    escape_next = False
+    
+    while i < len(cleaned):
+        char = cleaned[i]
+        
+        if escape_next:
+            result.append(char)
+            escape_next = False
+        elif char == '\\':
+            result.append(char)
+            escape_next = True
+        elif char == '"' and not in_string:
+            result.append(char)
+            in_string = True
+        elif char == '"' and in_string:
+            # This is a quote inside a string value - check if it's the end of the string
+            # Look ahead to see if this is followed by a colon (indicating end of string value)
+            lookahead = cleaned[i+1:i+10].strip() if i+1 < len(cleaned) else ""
+            if lookahead.startswith(','):
+                # This is the end of the string value
+                result.append(char)
+                in_string = False
+            else:
+                # This is a quote inside the string value that needs escaping
+                if i > 0 and cleaned[i-1] == '\\':
+                    result.append(char)
+                else:
+                    result.append('\\"')
+        elif in_string:
+            # We're inside a string value
+            if char == '\n':
+                result.append('\\n')
+            elif char == '\t':
+                result.append('\\t')
+            elif char == '\r':
+                result.append('\\r')
+            elif char == '"':
+                # Only escape quotes that are not already escaped
+                if i > 0 and cleaned[i-1] != '\\':
+                    result.append('\\"')
+                else:
+                    result.append(char)
+            else:
+                result.append(char)
+        else:
+            result.append(char)
+        
+        i += 1
+    
+    return ''.join(result)
+
+def parse_json_with_fallback(response: str, context: str = "response") -> dict:
+    """
+    Parse JSON with multiple fallback strategies
+    """
+    import re
+    
+    # Strategy 1: Try direct parsing
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 2: Simple string replacement approach
+    try:
+        # Find JSON boundaries
+        start_idx = response.find('{')
+        end_idx = response.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+            json_content = response[start_idx:end_idx + 1]
+            
+            # Remove control characters
+            json_content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', json_content)
+            
+            # Simple approach: replace newlines in string values
+            # This is a very basic approach that should handle most cases
+            lines = json_content.split('\n')
+            result_lines = []
+            
+            for line in lines:
+                # Check if this line contains a string value that spans multiple lines
+                if ':' in line and '"' in line:
+                    # This might be a string value
+                    colon_pos = line.find(':')
+                    if colon_pos != -1:
+                        key_part = line[:colon_pos].strip()
+                        value_part = line[colon_pos + 1:].strip()
+                        
+                        # If value starts with quote but doesn't end with quote, it's a multi-line string
+                        if value_part.startswith('"') and not value_part.endswith('"'):
+                            # This is the start of a multi-line string
+                            # Find the end of this string by looking for the next line that ends with quote
+                            multi_line_value = value_part[1:]  # Remove opening quote
+                            i = len(result_lines) + 1
+                            while i < len(lines):
+                                if lines[i].strip().endswith('"'):
+                                    # Found the end
+                                    multi_line_value += '\\n' + lines[i].strip()[:-1]  # Remove closing quote
+                                    break
+                                else:
+                                    multi_line_value += '\\n' + lines[i].strip()
+                                i += 1
+                            
+                            # Escape the content
+                            escaped_value = multi_line_value.replace('"', '\\"')
+                            result_lines.append(f'{key_part}: "{escaped_value}"')
+                        else:
+                            result_lines.append(line)
+                    else:
+                        result_lines.append(line)
+                else:
+                    result_lines.append(line)
+            
+            if result_lines:
+                repaired = '\n'.join(result_lines)
+                return json.loads(repaired)
+        
+        return json.loads(json_content)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 3: Extract JSON from markdown code blocks
+    try:
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', response, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1))
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 4: Find JSON object boundaries and try simple fixes
+    try:
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            json_content = json_match.group(0)
+            
+            # Simple fixes
+            json_content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', json_content)
+            
+            # Try to fix common issues
+            # Replace unescaped newlines in string values (very basic approach)
+            json_content = re.sub(r'(?<!\\)\n', r'\\n', json_content)
+            
+            return json.loads(json_content)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 5: Last resort - try to create a minimal valid JSON
+    try:
+        # Extract basic structure and create fallback
+        if 'expanded_description' in response:
+            return {
+                "expanded_description": "Error parsing detailed description",
+                "script": {
+                    "setup": ["Error generating script"],
+                    "animations": [],
+                    "cleanup": [],
+                    "total_estimated_time": 0,
+                    "manim_objects": {},
+                    "positioning_guide": {},
+                    "color_scheme": {}
+                }
+            }
+        else:
+            return {"error": "Failed to parse JSON"}
+    except Exception as e:
+        print(f"❌ All JSON parsing strategies failed for {context}: {e}")
+        print(f"Raw response preview: {response[:200]}...")
+        raise e
 
 def call_openai_api(prompt: str, api_key: str, model: str = DEFAULT_MODEL) -> str:
     """
@@ -196,7 +424,7 @@ def call_openai_api(prompt: str, api_key: str, model: str = DEFAULT_MODEL) -> st
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert educational content creator specializing in Manim (Mathematical Animation Engine) animations. You create comprehensive scene-by-scene scripts for educational videos that will be animated using Manim. Always respond with valid JSON format as requested."
+                    "content": "You are an expert educational content creator specializing in Manim (Mathematical Animation Engine) animations. You create comprehensive scene-by-scene scripts for educational videos that will be animated using Manim. CRITICAL: Always respond with valid JSON format. Ensure all strings are properly escaped - use \\n for newlines, \\\" for quotes, and avoid control characters. Double-check your JSON syntax before responding."
                 },
                 {
                     "role": "user",
@@ -228,7 +456,7 @@ async def call_openai_api_async(session: aiohttp.ClientSession, prompt: str, api
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert educational content creator specializing in Manim (Mathematical Animation Engine) animations. You create comprehensive scene-by-scene scripts for educational videos that will be animated using Manim. Always respond with valid JSON format as requested."
+                    "content": "You are an expert educational content creator specializing in Manim (Mathematical Animation Engine) animations. You create comprehensive scene-by-scene scripts for educational videos that will be animated using Manim. IMPORTANT: For Phase 2, describe animations in natural English language, NOT code. Focus on what the viewer sees and how elements move and relate to each other. CRITICAL: Always respond with valid JSON format. Ensure all strings are properly escaped - use \\n for newlines, \\\" for quotes, and avoid control characters. Double-check your JSON syntax before responding."
                 },
                 {
                     "role": "user",
@@ -256,6 +484,14 @@ async def call_openai_api_async(session: aiohttp.ClientSession, prompt: str, api
                     message=f"OpenAI API error {response.status}: {error_text}"
                 )
     
+    except aiohttp.ServerDisconnectedError as e:
+        print(f"Server disconnected, retrying...")
+        # Wait a bit before retrying
+        await asyncio.sleep(2)
+        raise
+    except aiohttp.ClientError as e:
+        print(f"Client error calling OpenAI API: {e}")
+        raise
     except Exception as e:
         print(f"Error calling OpenAI API: {e}")
         raise
@@ -282,13 +518,25 @@ async def process_scene_phase2_async(session: aiohttp.ClientSession, scene: Dict
         # Generate detailed prompt for this scene
         prompt = generate_scene_script_prompt(scene)
         
-        # Call OpenAI API asynchronously
-        response = await call_openai_api_async(session, prompt, api_key, model)
+        # Call OpenAI API asynchronously with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = await call_openai_api_async(session, prompt, api_key, model)
+                break
+            except aiohttp.ServerDisconnectedError as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Server disconnected on attempt {attempt + 1}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    print(f"❌ Server disconnected after {max_retries} attempts")
+                    raise
         
-        # Parse JSON response
+        # Parse JSON response with robust fallback
         try:
-            expanded_data = json.loads(response)
-        except json.JSONDecodeError as e:
+            expanded_data = parse_json_with_fallback(response, f"scene {scene_index}")
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
             print(f"❌ Error parsing JSON for scene {scene_index}: {e}")
             # Fallback: keep original scene with basic script
             expanded_scene = scene.copy()
@@ -489,6 +737,14 @@ def generate_manim_code_prompt(overview: Dict[str, Any], scene: Dict[str, Any]) 
     """
     Generate a prompt for creating Manim-compatible Python code for a single scene
     """
+    # Read the sample Manim code file (currently disabled)
+    # sample_code = ""
+    # try:
+    #     with open("SAMPLE_MANIM_CODE.py", "r", encoding="utf-8") as f:
+    #         sample_code = f.read()
+    # except FileNotFoundError:
+    #     sample_code = "# Sample code file not found"
+    
     return f"""You are an expert Manim developer. Generate complete, working Manim Python code for an educational animation scene.
 
 OVERVIEW CONTEXT:
@@ -518,7 +774,10 @@ REQUIREMENTS:
     - Use basic shapes like Circle, Rectangle, Polygon, or VGroup for visual elements
     - DO NOT use self.camera.frame (deprecated API) - use self.camera.frame_center or avoid camera animations
     - DO NOT use font_size parameter in get_tex() - use scale() method instead
-    - Use only standard fonts: "Arial", "Times New Roman", "Courier New", "Helvetica", "Verdana"
+    - DO NOT use Create() on VGroup objects - use Write() or FadeIn() instead
+    - DO NOT use FRAME_WIDTH or FRAME_HEIGHT - these constants don't exist in Manim
+- Use smaller font sizes: scale text to 0.6-0.8 for better readability
+- Ensure all elements stay within video bounds (approximately -7 to +7 on x-axis, -4 to +4 on y-axis)
 3. Include proper timing with self.play() and self.wait()
 4. Make the animation educational and visually clear
 5. Use the suggested Manim concepts where appropriate
@@ -535,14 +794,19 @@ REQUIREMENTS:
 
 COMMON MISTAKES TO AVOID:
 - self.camera.frame.animate.scale() → Use self.camera.frame_center.animate.move_to() or avoid camera animations
-- brace.get_tex(text, font_size=36) → Use brace.get_tex(text).scale(0.8)
-- Text(text, font="CMU Serif") → Use Text(text, font="Arial") or no font parameter
+- brace.get_tex(text, font_size=36) → Use brace.get_tex(text).scale(0.7)
+- Create(VGroup(...)) → Use Write(VGroup(...)) or FadeIn(VGroup(...))
+- FRAME_WIDTH, FRAME_HEIGHT → Use config.frame_width, config.frame_height or avoid these constants
 - Complex camera movements → Use simple object transformations instead
+- Large text without scaling → Always use .scale(0.6-0.8) for text elements
+- Elements outside video bounds → Keep all objects within x: [-7, 7], y: [-4, 4]
+- Long sentences without line breaks → Use \n for line breaks in Text elements
+- Text going off screen → Break long text into multiple lines with appropriate spacing
 
 SAFE ALTERNATIVES:
 - Instead of camera animations, use object scaling and movement
 - Instead of font_size in get_tex(), use .scale() method
-- Instead of custom fonts, use default fonts or specify safe ones
+- Use only approved fonts: "DejaVu Sans", "DejaVu Serif", "Liberation Sans", "Liberation Serif", "FreeSans", "FreeSerif"
 - Instead of complex camera operations, use simple transforms
 
 EXAMPLE OF CORRECT PATTERNS:
@@ -551,26 +815,53 @@ from manim import *
 
 class ExampleScene(Scene):
     def construct(self):
-        # Correct: Use basic shapes
-        circle = Circle(radius=1, color=BLUE)
+        # Correct: Use basic shapes with proper positioning
+        circle = Circle(radius=1, color=BLUE).move_to(ORIGIN)  # Center positioning
         
-        # Correct: Use .scale() instead of font_size
-        brace = BraceBetweenPoints(LEFT, RIGHT, direction=UP)
-        label = brace.get_tex("text").scale(0.8)
+        # Correct: Use .scale() instead of font_size with smaller scale
+        brace = BraceBetweenPoints(LEFT*2, RIGHT*2, direction=UP)  # Within bounds
+        label = brace.get_tex("text").scale(0.7)  # Smaller font size
         
-        # Correct: Use standard fonts or no font parameter
-        text = Text("Hello", font="Arial")
+        # Correct: Use approved fonts with scaling for readability
+        text = Text("Hello World", font="DejaVu Sans").scale(0.6).move_to(UP*2)  # Scaled text
         
         # Correct: Use Create instead of ShowCreation
         self.play(Create(circle))
         
-        # Correct: Avoid camera animations, use object transforms
-        self.play(circle.animate.scale(2).move_to(UP))
+        # Correct: Avoid camera animations, use object transforms within bounds
+        self.play(circle.animate.scale(1.5).move_to(UP*1.5))  # Stay within y: [-4, 4]
         
-        # Correct: Use VGroup for complex objects
-        group = VGroup(circle, text)
-        self.play(group.animate.arrange(RIGHT))
+        # Correct: Use VGroup for complex objects with proper arrangement
+        group = VGroup(circle, text).arrange(RIGHT, buff=0.5).move_to(ORIGIN)
+        self.play(group.animate.arrange(RIGHT, buff=1))
+        
+        # Correct: Position elements within video bounds
+        # x-axis: approximately -7 to +7, y-axis: approximately -4 to +4
+        title = Text("Title", font="DejaVu Sans").scale(0.8).to_edge(UP, buff=0.5)
+        self.play(Write(title))
+        
+        # Correct: Long text scaled appropriately
+        long_text = Text("This is a very long sentence that would go off the screen if not scaled properly", 
+                        font="DejaVu Sans").scale(0.6).move_to(ORIGIN)
+        self.play(Write(long_text))
+        
+        # Correct: Mathematical expressions
+        math_text = Text("The Pythagorean theorem states: a² + b² = c² where c is the hypotenuse", 
+                        font="DejaVu Sans").scale(0.7).move_to(DOWN*2)
+        self.play(Write(math_text))
 ```
+
+ADDITIONAL SAMPLE SYNTAX EXAMPLES:
+For more comprehensive Manim syntax examples and patterns, refer to the attached sample code file. This file contains real-world examples of:
+- Complex scene constructions
+- Advanced animation techniques
+- Mathematical visualizations
+- Text formatting and positioning
+- Object transformations and groupings
+- Camera movements and effects
+- Custom styling and theming
+
+Use these examples as reference for proper Manim syntax, but ensure your generated code follows the requirements above (scaling, positioning, line breaks, etc.).
 
 OUTPUT FORMAT (JSON):
 {{
@@ -588,7 +879,20 @@ OUTPUT FORMAT (JSON):
 The animation should effectively teach the concept through visual storytelling and smooth transitions.
 Follow the script details closely for positioning, timing, and visual elements.
 
+IMPORTANT JSON FORMATTING RULES:
+- Use \\\" for quotes within strings
+- Ensure all strings are properly escaped
+- No control characters or unescaped special characters
+- Validate JSON syntax before responding
+
+
+
 Return ONLY the JSON response, no additional text."""
+
+# SAMPLE MANIM CODE REFERENCE:
+# Below is a comprehensive collection of real-world Manim code examples for reference. Use these patterns and techniques as inspiration, but ensure your generated code follows all the requirements above (scaling, positioning, line breaks, etc.):
+
+# Note: Sample code reference is currently disabled but can be re-enabled if needed
 
 def validate_manim_code(code: str) -> Dict[str, Any]:
     """
@@ -597,19 +901,29 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
     issues = []
     warnings = []
     
+    # Check for indentation issues
+    lines = code.split('\n')
+    for i, line in enumerate(lines, 1):
+        if line.strip().startswith(('scene_', 'icon_', 'bullet_')) and not line.startswith('        '):
+            issues.append(f"Line {i}: Indentation error - scene content should be indented")
+    
     # Check for deprecated camera API
     if "self.camera.frame" in code:
         issues.append("Uses deprecated camera.frame API - should use camera.frame_center or avoid camera animations")
+    
+    # Check for camera.frame_center.animate usage
+    if "self.camera.frame_center.animate" in code:
+        issues.append("Uses camera.frame_center.animate - this doesn't work, should use object animations instead")
     
     # Check for font_size parameter in get_tex
     if "font_size=" in code and "get_tex" in code:
         issues.append("Uses font_size parameter in get_tex() - should use .scale() method instead")
     
     # Check for problematic fonts
-    problematic_fonts = ["CMU Serif", "CMU Sans", "CMU Typewriter", "Computer Modern"]
-    for font in problematic_fonts:
-        if font in code:
-            warnings.append(f"Uses potentially problematic font '{font}' - consider using standard fonts")
+    # problematic_fonts = ["CMU Serif", "CMU Sans", "CMU Typewriter", "Computer Modern"]
+    # for font in problematic_fonts:
+    #     if font in code:
+    #         warnings.append(f"Uses potentially problematic font '{font}' - consider using standard fonts")
     
     # Check for SVGMobject usage
     if "SVGMobject" in code:
@@ -619,9 +933,113 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
     if "ShowCreation" in code:
         issues.append("Uses deprecated ShowCreation - should use Create instead")
     
+    # Check for Create on VGroup - more specific pattern
+    if re.search(r'Create\(\s*[^)]*VGroup[^)]*\)', code):
+        issues.append("Uses Create() on VGroup - should use Write() or FadeIn() instead")
+    
+    # Check for undefined color constants
+    undefined_colors = ["CYAN", "AMBER", "AZURE"]
+    for color in undefined_colors:
+        if color in code:
+            issues.append(f"Uses undefined color constant '{color}' - should use standard Manim colors")
+    
+    # Check for undefined animations
+    undefined_animations = ["FadeInFromUp", "FadeInFromDown", "FadeInFromLeft", "FadeInFromRight"]
+    for anim in undefined_animations:
+        if anim in code:
+            issues.append(f"Uses undefined animation '{anim}' - should use standard Manim animations")
+    
+    # Check for NumberPlane issues
+    if "background_lines_color" in code or "background_lines_stroke_width" in code or "background_lines_opacity" in code:
+        issues.append("Uses unsupported NumberPlane arguments - these parameters don't exist")
+    
+    # Check for Rectangle API issues
+    if ".get_bottom_center()" in code or ".get_left_center()" in code or ".get_right_center()" in code or ".get_top_center()" in code:
+        issues.append("Uses deprecated Rectangle methods - should use .get_bottom(), .get_left(), etc.")
+    
+    # Check for quote escaping issues
+    if 'font=\\"' in code:
+        issues.append("Uses malformed quote escaping in font parameter")
+    
+    # Check for malformed parentheses
+    if 'self.play(self.wait(' in code:
+        issues.append("Uses malformed parentheses in camera animation fix")
+    
+    # Check for incomplete parameters
+    if 'fill_)' in code or 'fill_,' in code:
+        issues.append("Uses incomplete fill_opacity parameters - should be fill_opacity=value")
+    
+    if 'stroke_)' in code or 'stroke_,' in code:
+        issues.append("Uses incomplete stroke parameters - should be stroke_width=value")
+    
+    if 'color_)' in code or 'color_,' in code:
+        issues.append("Uses incomplete color parameters - should be color=value")
+    
+    # Check for FRAME_WIDTH/FRAME_HEIGHT usage
+    if "FRAME_WIDTH" in code or "FRAME_HEIGHT" in code:
+        issues.append("Uses FRAME_WIDTH/FRAME_HEIGHT - these constants don't exist in Manim")
+    
     # Check for multiline strings in MathTex
     if '"""' in code and "MathTex" in code:
         warnings.append("Uses multiline strings with MathTex - may cause issues")
+    
+    # Check for text elements without scaling
+    if "Text(" in code and ".scale(" not in code:
+        warnings.append("Text elements should be scaled for better readability (use .scale(0.6-0.8))")
+    
+    # Check for long text that might need scaling
+    text_matches = re.findall(r'Text\(["\']([^"\']{50,})["\']', code)
+    for text_content in text_matches:
+        if len(text_content) > 50:
+            warnings.append(f"Long text detected: '{text_content[:30]}...' - ensure proper scaling")
+    
+    # Check for potential out-of-bounds positioning
+    if "move_to(" in code:
+        # Look for extreme positioning values
+        extreme_positions = re.findall(r'move_to\([^)]*[+-]?[0-9]+\.?[0-9]*\*?[^)]*\)', code)
+        for pos in extreme_positions:
+            if any(extreme in pos for extreme in ['*8', '*9', '*10', '*11', '*12', '*13', '*14', '*15']):
+                warnings.append("Potential out-of-bounds positioning detected - ensure elements stay within video bounds")
+    
+    # Check for incomplete parameters that cause positional argument errors
+    if re.search(r'fill_\s*,', code):
+        issues.append("Incomplete fill_opacity parameter")
+    if re.search(r'stroke_\s*,', code):
+        issues.append("Incomplete stroke_width parameter")
+    if re.search(r'color_\s*,', code):
+        issues.append("Incomplete color parameter")
+    
+    # Check for scale method issues (but not opacity which is fine)
+    if re.search(r'\.scale\(0\)', code) and 'set_opacity' not in code:
+        issues.append("Scale method with 0 parameter may cause issues")
+    
+    # Check for max_width parameter issues
+    if re.search(r'max_width=', code):
+        issues.append("Uses max_width parameter - not supported in current Manim version")
+    
+    # Check for Sector outer_radius duplication
+    if re.search(r'Sector\([^)]*outer_radius=[^,)]+[^)]*outer_radius=', code):
+        issues.append("Sector has duplicate outer_radius parameters")
+    
+    # Check for VGroup with float values
+    if re.search(r'VGroup\([^)]*,\s*[0-9]+\.?[0-9]*\s*\)', code):
+        issues.append("VGroup contains float values - only VMobjects allowed")
+    
+    # Check for malformed VGroup constructors
+    if re.search(r'VGroup\(\s*\(\s*\(', code):
+        issues.append("VGroup has malformed constructor with extra parentheses")
+    
+    # Check for VGroup with starred expressions issues
+    if re.search(r'VGroup\(\s*\(\s*\*', code):
+        issues.append("VGroup has malformed starred expression syntax")
+    
+    # Check for VGroup with missing closing parentheses
+    if re.search(r'VGroup\(\s*\(\s*[^)]+\)\s*$', code):
+        issues.append("VGroup has missing closing parentheses")
+    
+    # Check for duplicate variable assignments
+    if re.search(r'^(\s*)(\w+)\s*=\s*\2\s*$', code, re.MULTILINE):
+        issues.append("Duplicate variable assignments causing UnboundLocalError")
     
     return {
         "issues": issues,
@@ -638,7 +1056,7 @@ def fix_manim_code(code: str) -> str:
     # Fix camera.frame issues - more comprehensive pattern matching
     # Pattern for self.camera.frame.animate with method chaining
     camera_pattern = r'self\.camera\.frame\.animate\.[^)]+\)'
-    def replace_camera(match):
+    def replace_camera(_match):
         # For camera animations, we'll replace with a simple wait instead
         return 'self.wait(0.5)  # Camera animation replaced with wait'
     code = re.sub(camera_pattern, replace_camera, code)
@@ -657,22 +1075,217 @@ def fix_manim_code(code: str) -> str:
         text = match.group(1)
         size = int(match.group(2))
         scale_factor = size / 36.0  # Default font size is 36
+        # Ensure scale is within recommended range (0.6-0.8)
+        scale_factor = max(0.6, min(0.8, scale_factor))
         return f'.get_tex({text}).scale({scale_factor:.2f})'
     code = re.sub(pattern, replace_font_size, code)
     
-    # Fix problematic fonts
-    code = code.replace('font="CMU Serif"', 'font="Arial"')
-    code = code.replace('font="CMU Sans"', 'font="Arial"')
-    code = code.replace('font="CMU Typewriter"', 'font="Courier New"')
-    code = code.replace('font="Computer Modern"', 'font="Times New Roman"')
+    # Add scaling to Text elements that don't have it
+    text_pattern = r'Text\(([^)]+)\)(?!\s*\.scale)'
+    def add_text_scaling(match):
+        text_content = match.group(1)
+        return f'Text({text_content}).scale(0.7)'
+    code = re.sub(text_pattern, add_text_scaling, code)
+    
+    # Ensure long text is properly scaled
+    long_text_pattern = r'Text\(["\']([^"\']{50,})["\']\)'
+    def fix_long_text(match):
+        text_content = match.group(1)
+        return f'Text("{text_content}").scale(0.6)'
+    code = re.sub(long_text_pattern, fix_long_text, code)
+    
+    # Fix problematic fonts to use approved ones
+    # code = code.replace('font="Arial"', 'font="DejaVu Sans"')
+    # code = code.replace('font="Times New Roman"', 'font="DejaVu Serif"')
+    # code = code.replace('font="Courier New"', 'font="Liberation Mono"')
+    # code = code.replace('font="Helvetica"', 'font="DejaVu Sans"')
+    # code = code.replace('font="Verdana"', 'font="DejaVu Sans"')
+    # code = code.replace('font="CMU Serif"', 'font="DejaVu Serif"')
+    # code = code.replace('font="CMU Sans"', 'font="DejaVu Sans"')
+    # code = code.replace('font="CMU Typewriter"', 'font="Liberation Mono"')
+    # code = code.replace('font="Computer Modern"', 'font="DejaVu Serif"')
     
     # Fix ShowCreation
     code = code.replace("ShowCreation", "Create")
+    
+    # Fix Create on VGroup - replace with Write
+    # More comprehensive pattern to catch Create(VGroup(...))
+    vgroup_create_pattern = r'Create\(\s*([^)]*VGroup[^)]*)\s*\)'
+    def fix_vgroup_create(match):
+        vgroup_expr = match.group(1).strip()
+        return f'Write({vgroup_expr})'
+    code = re.sub(vgroup_create_pattern, fix_vgroup_create, code)
+    
+    # Also fix simple cases like Create(group) where group is a VGroup
+    # This is a more aggressive approach
+    code = re.sub(r'Create\(\s*(\w+)\s*\)', r'Write(\1)', code)
+    
+    # Fix FRAME_WIDTH/FRAME_HEIGHT usage
+    code = code.replace("FRAME_WIDTH", "config.frame_width")
+    code = code.replace("FRAME_HEIGHT", "config.frame_height")
     
     # Remove SVGMobject usage
     if "SVGMobject" in code:
         # Replace with basic shapes - this is a simple replacement
         code = code.replace("SVGMobject", "Circle")  # Basic fallback
+    
+    # Fix extreme positioning to stay within bounds
+    # Replace extreme positioning with safer values
+    extreme_patterns = [
+        (r'UP \* (8|9|10|11|12|13|14|15)', 'UP * 3'),  # Reduce extreme UP positioning
+        (r'DOWN \* (8|9|10|11|12|13|14|15)', 'DOWN * 3'),  # Reduce extreme DOWN positioning
+        (r'LEFT \* (8|9|10|11|12|13|14|15)', 'LEFT * 5'),  # Reduce extreme LEFT positioning
+        (r'RIGHT \* (8|9|10|11|12|13|14|15)', 'RIGHT * 5'),  # Reduce extreme RIGHT positioning
+    ]
+    
+    for pattern, replacement in extreme_patterns:
+        code = re.sub(pattern, replacement, code)
+    
+    # Fix indentation issues
+    lines = code.split('\n')
+    fixed_lines = []
+    in_scene_method = False
+    
+    for line in lines:
+        if 'def construct(self):' in line:
+            in_scene_method = True
+            fixed_lines.append(line)
+        elif in_scene_method and line.strip():
+            # Fix any line in the construct method that has wrong indentation
+            if line.startswith('                ') and any(keyword in line for keyword in ['scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_', 'Text(', 'Circle(', 'Rectangle(', 'Square(', 'Line(', 'Dot(', 'VGroup(', 'Polygon(']):
+                # Too much indentation (16 spaces) - fix to 8 spaces
+                fixed_lines.append('        ' + line.strip())
+            elif not line.startswith(' ') and not line.startswith('\t') and any(keyword in line for keyword in ['Text(', 'Circle(', 'Rectangle(', 'Square(', 'Line(', 'Dot(', 'VGroup(', 'Polygon(', 'scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_']):
+                # No indentation - add 8 spaces
+                fixed_lines.append('        ' + line.strip())
+            else:
+                fixed_lines.append(line)
+        else:
+            # Fix common indentation issues - ensure proper indentation for scene content
+            if line.strip().startswith(('scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_')) and not line.startswith('        '):
+                line = '        ' + line.strip()
+            fixed_lines.append(line)
+    
+    code = '\n'.join(fixed_lines)
+    
+    # Fix undefined color constants
+    code = code.replace("CYAN", "BLUE")
+    code = code.replace("AMBER", "YELLOW")
+    code = code.replace("AZURE", "LIGHT_BLUE")
+    
+    # Fix undefined animations
+    code = code.replace("FadeInFromUp", "FadeIn")
+    code = code.replace("FadeInFromDown", "FadeIn")
+    code = code.replace("FadeInFromLeft", "FadeIn")
+    code = code.replace("FadeInFromRight", "FadeIn")
+    
+    # Fix camera.frame_center.animate - this doesn't work either
+    code = re.sub(r'self\.camera\.frame_center\.animate\.move_to\([^)]+\)', 'self.wait(0.5)  # Camera animation replaced with wait', code)
+    
+    # Fix NumberPlane issues - remove problematic arguments
+    code = re.sub(r'background_lines_color=[^,)]+', '', code)
+    code = re.sub(r'background_lines_stroke_width=[^,)]+', '', code)
+    code = re.sub(r'background_lines_opacity=[^,)]+', '', code)
+    code = re.sub(r'opacity=[^,)]+', '', code)  # Remove opacity from set_style calls
+    
+    # Fix Rectangle API issues - replace deprecated methods
+    code = code.replace('.get_bottom_center()', '.get_bottom()')
+    code = code.replace('.get_left_center()', '.get_left()')
+    code = code.replace('.get_right_center()', '.get_right()')
+    code = code.replace('.get_top_center()', '.get_top()')
+    
+    # Fix quote escaping issues
+    code = re.sub(r'font=\\"([^"]+)\\"', r'font="\1"', code)
+    
+    # Fix malformed parentheses from camera fixes
+    code = re.sub(r'self\.play\(self\.wait\(0\.5\)\s*# Camera animation replaced with wait\), run_time=[^)]+\)', 
+                  'self.wait(0.5)  # Camera animation replaced with wait', code)
+    
+    # Fix any remaining malformed parentheses patterns
+    code = re.sub(r'self\.play\(self\.wait\([^)]+\)\s*# [^)]+\)', 
+                  'self.wait(0.5)  # Camera animation replaced with wait', code)
+    
+    # Fix incomplete fill_opacity parameters
+    code = re.sub(r'fill_\)', 'fill_opacity=0.5)', code)
+    code = re.sub(r'fill_,', 'fill_opacity=0.5,', code)
+    
+    # Fix incomplete stroke parameters
+    code = re.sub(r'stroke_\)', 'stroke_width=2)', code)
+    code = re.sub(r'stroke_,', 'stroke_width=2,', code)
+    
+    # Fix incomplete color parameters
+    code = re.sub(r'color_\)', 'color=WHITE)', code)
+    code = re.sub(r'color_,', 'color=WHITE,', code)
+    
+    # Fix positional argument follows keyword argument errors
+    # This happens when incomplete parameters like fill_ are followed by other parameters
+    code = re.sub(r'(\w+=\w+,\s*)(fill_)(\s*,\s*)(\w+=\w+)', r'\1fill_opacity=0.5\3\4', code)
+    code = re.sub(r'(\w+=\w+,\s*)(stroke_)(\s*,\s*)(\w+=\w+)', r'\1stroke_width=2\3\4', code)
+    code = re.sub(r'(\w+=\w+,\s*)(color_)(\s*,\s*)(\w+=\w+)', r'\1color=WHITE\3\4', code)
+    
+    # Fix set_scale deprecation - replace with .scale() first
+    code = re.sub(r'\.set_scale\(([^)]+)\)', r'.scale(\1)', code)
+    
+    # Fix scale method issues - replace .scale(0) with .set_opacity(0) for visibility
+    code = re.sub(r'\.scale\(0\)', '.set_opacity(0)', code)
+    
+    # Fix max_width parameter issue - remove unsupported parameter
+    code = re.sub(r'max_width=[^,)]+[,)]', '', code)
+    code = re.sub(r',\s*max_width=[^,)]+', '', code)
+    
+    # Fix Sector/AnnularSector outer_radius duplication issue
+    code = re.sub(r'Sector\([^)]*outer_radius=([^,)]+)[^)]*outer_radius=([^,)]+)', r'Sector(outer_radius=\2', code)
+    code = re.sub(r'AnnularSector\([^)]*outer_radius=([^,)]+)[^)]*outer_radius=([^,)]+)', r'AnnularSector(outer_radius=\2', code)
+    
+    # Fix VGroup float addition issue - remove float values from VGroup
+    # Use a more robust approach
+    def fix_vgroup_floats(match):
+        content = match.group(0)
+        # Find the content inside VGroup(...)
+        inner_content = content[6:-1]  # Remove 'VGroup(' and ')'
+        
+        # Split by commas and filter out float values
+        parts = inner_content.split(',')
+        filtered_parts = []
+        for part in parts:
+            part = part.strip()
+            # Skip if it's just a number (float or int)
+            if not re.match(r'^[0-9]+\.?[0-9]*$', part):
+                filtered_parts.append(part)
+        
+        # Rejoin with commas and reconstruct VGroup
+        if filtered_parts:
+            result = 'VGroup(' + ','.join(filtered_parts) + ')'
+        else:
+            result = 'VGroup()'
+        # Clean up extra commas
+        result = re.sub(r',\s*,', ',', result)
+        result = re.sub(r',\s*\)', ')', result)
+        return result
+    
+    # Apply VGroup float fix with a more specific pattern
+    code = re.sub(r'VGroup\([^)]*\)', fix_vgroup_floats, code)
+    
+    # Fix VGroup syntax errors - malformed constructors with extra parentheses
+    # Pattern: VGroup(((...) -> VGroup(...)
+    code = re.sub(r'VGroup\(\(\s*\(', 'VGroup(', code)
+    code = re.sub(r'VGroup\(\(\s*', 'VGroup(', code)
+    
+    # Fix VGroup with starred expressions - remove extra parentheses
+    # Pattern: VGroup((*[...]) -> VGroup(*[...])
+    code = re.sub(r'VGroup\(\s*\(\s*\*', 'VGroup(*', code)
+    
+    # Fix VGroup with missing closing parentheses
+    # Pattern: VGroup((item1,item2) -> VGroup(item1,item2)
+    code = re.sub(r'VGroup\(\s*\(\s*([^)]+)\)\s*$', r'VGroup(\1)', code, flags=re.MULTILINE)
+    
+    # Fix duplicate variable assignments that cause UnboundLocalError
+    # Pattern: BLUE = BLUE -> # BLUE = BLUE (commented out)
+    code = re.sub(r'^(\s*)(\w+)\s*=\s*\2\s*$', r'\1# \2 = \2', code, flags=re.MULTILINE)
+    
+    # Clean up extra commas that might be left
+    code = re.sub(r',\s*\)', ')', code)
+    code = re.sub(r',\s*,', ',', code)
     
     return code
 
@@ -686,13 +1299,25 @@ async def process_scene_phase3_async(session: aiohttp.ClientSession, overview: D
         # Generate Manim code prompt for this scene
         prompt = generate_manim_code_prompt(overview, scene)
         
-        # Call OpenAI API asynchronously
-        response = await call_openai_api_async(session, prompt, api_key, model)
+        # Call OpenAI API asynchronously with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = await call_openai_api_async(session, prompt, api_key, model)
+                break
+            except aiohttp.ServerDisconnectedError as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Server disconnected on attempt {attempt + 1}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    print(f"❌ Server disconnected after {max_retries} attempts")
+                    raise
         
-        # Parse JSON response
+        # Parse JSON response with robust fallback
         try:
-            code_data = json.loads(response)
-        except json.JSONDecodeError as e:
+            code_data = parse_json_with_fallback(response, f"scene {scene_index}")
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
             print(f"❌ Error parsing JSON for scene {scene_index}: {e}")
             # Fallback: create basic scene
             code_data = {
@@ -1085,10 +1710,10 @@ def main():
         # Call OpenAI API
         response = call_openai_api(prompt, api_key, args.model)
         
-        # Parse JSON response
+        # Parse JSON response with robust fallback
         try:
-            scene_data = json.loads(response)
-        except json.JSONDecodeError as e:
+            scene_data = parse_json_with_fallback(response, "Phase 1 scene generation")
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
             print(f"❌ Error parsing JSON response: {e}")
             print("Raw response:")
             print(response)
