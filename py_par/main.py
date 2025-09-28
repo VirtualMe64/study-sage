@@ -1648,6 +1648,7 @@ def combine_videos(videos: List[str], output_dir: str) -> str:
             "-safe", "0",
             "-i", videos_list_path,
             "-c", "copy",
+            "-y",
             output_video_path
         ], check=True)
         
