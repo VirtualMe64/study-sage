@@ -6,6 +6,7 @@ Generates scene-by-scene scripts for educational animations using OpenAI API
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import asyncio
@@ -483,6 +484,14 @@ async def call_openai_api_async(session: aiohttp.ClientSession, prompt: str, api
                     message=f"OpenAI API error {response.status}: {error_text}"
                 )
     
+    except aiohttp.ServerDisconnectedError as e:
+        print(f"Server disconnected, retrying...")
+        # Wait a bit before retrying
+        await asyncio.sleep(2)
+        raise
+    except aiohttp.ClientError as e:
+        print(f"Client error calling OpenAI API: {e}")
+        raise
     except Exception as e:
         print(f"Error calling OpenAI API: {e}")
         raise
@@ -509,8 +518,20 @@ async def process_scene_phase2_async(session: aiohttp.ClientSession, scene: Dict
         # Generate detailed prompt for this scene
         prompt = generate_scene_script_prompt(scene)
         
-        # Call OpenAI API asynchronously
-        response = await call_openai_api_async(session, prompt, api_key, model)
+        # Call OpenAI API asynchronously with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = await call_openai_api_async(session, prompt, api_key, model)
+                break
+            except aiohttp.ServerDisconnectedError as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Server disconnected on attempt {attempt + 1}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    print(f"❌ Server disconnected after {max_retries} attempts")
+                    raise
         
         # Parse JSON response with robust fallback
         try:
@@ -912,8 +933,8 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
     if "ShowCreation" in code:
         issues.append("Uses deprecated ShowCreation - should use Create instead")
     
-    # Check for Create on VGroup
-    if "Create(" in code and "VGroup" in code:
+    # Check for Create on VGroup - more specific pattern
+    if re.search(r'Create\(\s*[^)]*VGroup[^)]*\)', code):
         issues.append("Uses Create() on VGroup - should use Write() or FadeIn() instead")
     
     # Check for undefined color constants
@@ -932,6 +953,28 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
     if "background_lines_color" in code or "background_lines_stroke_width" in code or "background_lines_opacity" in code:
         issues.append("Uses unsupported NumberPlane arguments - these parameters don't exist")
     
+    # Check for Rectangle API issues
+    if ".get_bottom_center()" in code or ".get_left_center()" in code or ".get_right_center()" in code or ".get_top_center()" in code:
+        issues.append("Uses deprecated Rectangle methods - should use .get_bottom(), .get_left(), etc.")
+    
+    # Check for quote escaping issues
+    if 'font=\\"' in code:
+        issues.append("Uses malformed quote escaping in font parameter")
+    
+    # Check for malformed parentheses
+    if 'self.play(self.wait(' in code:
+        issues.append("Uses malformed parentheses in camera animation fix")
+    
+    # Check for incomplete parameters
+    if 'fill_)' in code or 'fill_,' in code:
+        issues.append("Uses incomplete fill_opacity parameters - should be fill_opacity=value")
+    
+    if 'stroke_)' in code or 'stroke_,' in code:
+        issues.append("Uses incomplete stroke parameters - should be stroke_width=value")
+    
+    if 'color_)' in code or 'color_,' in code:
+        issues.append("Uses incomplete color parameters - should be color=value")
+    
     # Check for FRAME_WIDTH/FRAME_HEIGHT usage
     if "FRAME_WIDTH" in code or "FRAME_HEIGHT" in code:
         issues.append("Uses FRAME_WIDTH/FRAME_HEIGHT - these constants don't exist in Manim")
@@ -945,7 +988,6 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
         warnings.append("Text elements should be scaled for better readability (use .scale(0.6-0.8))")
     
     # Check for long text that might need scaling
-    import re
     text_matches = re.findall(r'Text\(["\']([^"\']{50,})["\']', code)
     for text_content in text_matches:
         if len(text_content) > 50:
@@ -958,6 +1000,46 @@ def validate_manim_code(code: str) -> Dict[str, Any]:
         for pos in extreme_positions:
             if any(extreme in pos for extreme in ['*8', '*9', '*10', '*11', '*12', '*13', '*14', '*15']):
                 warnings.append("Potential out-of-bounds positioning detected - ensure elements stay within video bounds")
+    
+    # Check for incomplete parameters that cause positional argument errors
+    if re.search(r'fill_\s*,', code):
+        issues.append("Incomplete fill_opacity parameter")
+    if re.search(r'stroke_\s*,', code):
+        issues.append("Incomplete stroke_width parameter")
+    if re.search(r'color_\s*,', code):
+        issues.append("Incomplete color parameter")
+    
+    # Check for scale method issues (but not opacity which is fine)
+    if re.search(r'\.scale\(0\)', code) and 'set_opacity' not in code:
+        issues.append("Scale method with 0 parameter may cause issues")
+    
+    # Check for max_width parameter issues
+    if re.search(r'max_width=', code):
+        issues.append("Uses max_width parameter - not supported in current Manim version")
+    
+    # Check for Sector outer_radius duplication
+    if re.search(r'Sector\([^)]*outer_radius=[^,)]+[^)]*outer_radius=', code):
+        issues.append("Sector has duplicate outer_radius parameters")
+    
+    # Check for VGroup with float values
+    if re.search(r'VGroup\([^)]*,\s*[0-9]+\.?[0-9]*\s*\)', code):
+        issues.append("VGroup contains float values - only VMobjects allowed")
+    
+    # Check for malformed VGroup constructors
+    if re.search(r'VGroup\(\s*\(\s*\(', code):
+        issues.append("VGroup has malformed constructor with extra parentheses")
+    
+    # Check for VGroup with starred expressions issues
+    if re.search(r'VGroup\(\s*\(\s*\*', code):
+        issues.append("VGroup has malformed starred expression syntax")
+    
+    # Check for VGroup with missing closing parentheses
+    if re.search(r'VGroup\(\s*\(\s*[^)]+\)\s*$', code):
+        issues.append("VGroup has missing closing parentheses")
+    
+    # Check for duplicate variable assignments
+    if re.search(r'^(\s*)(\w+)\s*=\s*\2\s*$', code, re.MULTILINE):
+        issues.append("Duplicate variable assignments causing UnboundLocalError")
     
     return {
         "issues": issues,
@@ -1013,15 +1095,15 @@ def fix_manim_code(code: str) -> str:
     code = re.sub(long_text_pattern, fix_long_text, code)
     
     # Fix problematic fonts to use approved ones
-    code = code.replace('font="Arial"', 'font="DejaVu Sans"')
-    code = code.replace('font="Times New Roman"', 'font="DejaVu Serif"')
-    code = code.replace('font="Courier New"', 'font="Liberation Mono"')
-    code = code.replace('font="Helvetica"', 'font="DejaVu Sans"')
-    code = code.replace('font="Verdana"', 'font="DejaVu Sans"')
-    code = code.replace('font="CMU Serif"', 'font="DejaVu Serif"')
-    code = code.replace('font="CMU Sans"', 'font="DejaVu Sans"')
-    code = code.replace('font="CMU Typewriter"', 'font="Liberation Mono"')
-    code = code.replace('font="Computer Modern"', 'font="DejaVu Serif"')
+    # code = code.replace('font="Arial"', 'font="DejaVu Sans"')
+    # code = code.replace('font="Times New Roman"', 'font="DejaVu Serif"')
+    # code = code.replace('font="Courier New"', 'font="Liberation Mono"')
+    # code = code.replace('font="Helvetica"', 'font="DejaVu Sans"')
+    # code = code.replace('font="Verdana"', 'font="DejaVu Sans"')
+    # code = code.replace('font="CMU Serif"', 'font="DejaVu Serif"')
+    # code = code.replace('font="CMU Sans"', 'font="DejaVu Sans"')
+    # code = code.replace('font="CMU Typewriter"', 'font="Liberation Mono"')
+    # code = code.replace('font="Computer Modern"', 'font="DejaVu Serif"')
     
     # Fix ShowCreation
     code = code.replace("ShowCreation", "Create")
@@ -1062,15 +1144,28 @@ def fix_manim_code(code: str) -> str:
     # Fix indentation issues
     lines = code.split('\n')
     fixed_lines = []
+    in_scene_method = False
+    
     for line in lines:
-        # Fix common indentation issues - ensure proper indentation for scene content
-        if line.strip().startswith('scene_') and not line.startswith('        '):
-            line = '        ' + line.strip()
-        elif line.strip().startswith('icon_') and not line.startswith('        '):
-            line = '        ' + line.strip()
-        elif line.strip().startswith('bullet_') and not line.startswith('        '):
-            line = '        ' + line.strip()
-        fixed_lines.append(line)
+        if 'def construct(self):' in line:
+            in_scene_method = True
+            fixed_lines.append(line)
+        elif in_scene_method and line.strip():
+            # Fix any line in the construct method that has wrong indentation
+            if line.startswith('                ') and any(keyword in line for keyword in ['scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_', 'Text(', 'Circle(', 'Rectangle(', 'Square(', 'Line(', 'Dot(', 'VGroup(', 'Polygon(']):
+                # Too much indentation (16 spaces) - fix to 8 spaces
+                fixed_lines.append('        ' + line.strip())
+            elif not line.startswith(' ') and not line.startswith('\t') and any(keyword in line for keyword in ['Text(', 'Circle(', 'Rectangle(', 'Square(', 'Line(', 'Dot(', 'VGroup(', 'Polygon(', 'scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_']):
+                # No indentation - add 8 spaces
+                fixed_lines.append('        ' + line.strip())
+            else:
+                fixed_lines.append(line)
+        else:
+            # Fix common indentation issues - ensure proper indentation for scene content
+            if line.strip().startswith(('scene_', 'icon_', 'bullet_', 'title_', 'text_', 'rect_', 'diag_', 'w_', 'h_')) and not line.startswith('        '):
+                line = '        ' + line.strip()
+            fixed_lines.append(line)
+    
     code = '\n'.join(fixed_lines)
     
     # Fix undefined color constants
@@ -1091,6 +1186,102 @@ def fix_manim_code(code: str) -> str:
     code = re.sub(r'background_lines_color=[^,)]+', '', code)
     code = re.sub(r'background_lines_stroke_width=[^,)]+', '', code)
     code = re.sub(r'background_lines_opacity=[^,)]+', '', code)
+    code = re.sub(r'opacity=[^,)]+', '', code)  # Remove opacity from set_style calls
+    
+    # Fix Rectangle API issues - replace deprecated methods
+    code = code.replace('.get_bottom_center()', '.get_bottom()')
+    code = code.replace('.get_left_center()', '.get_left()')
+    code = code.replace('.get_right_center()', '.get_right()')
+    code = code.replace('.get_top_center()', '.get_top()')
+    
+    # Fix quote escaping issues
+    code = re.sub(r'font=\\"([^"]+)\\"', r'font="\1"', code)
+    
+    # Fix malformed parentheses from camera fixes
+    code = re.sub(r'self\.play\(self\.wait\(0\.5\)\s*# Camera animation replaced with wait\), run_time=[^)]+\)', 
+                  'self.wait(0.5)  # Camera animation replaced with wait', code)
+    
+    # Fix any remaining malformed parentheses patterns
+    code = re.sub(r'self\.play\(self\.wait\([^)]+\)\s*# [^)]+\)', 
+                  'self.wait(0.5)  # Camera animation replaced with wait', code)
+    
+    # Fix incomplete fill_opacity parameters
+    code = re.sub(r'fill_\)', 'fill_opacity=0.5)', code)
+    code = re.sub(r'fill_,', 'fill_opacity=0.5,', code)
+    
+    # Fix incomplete stroke parameters
+    code = re.sub(r'stroke_\)', 'stroke_width=2)', code)
+    code = re.sub(r'stroke_,', 'stroke_width=2,', code)
+    
+    # Fix incomplete color parameters
+    code = re.sub(r'color_\)', 'color=WHITE)', code)
+    code = re.sub(r'color_,', 'color=WHITE,', code)
+    
+    # Fix positional argument follows keyword argument errors
+    # This happens when incomplete parameters like fill_ are followed by other parameters
+    code = re.sub(r'(\w+=\w+,\s*)(fill_)(\s*,\s*)(\w+=\w+)', r'\1fill_opacity=0.5\3\4', code)
+    code = re.sub(r'(\w+=\w+,\s*)(stroke_)(\s*,\s*)(\w+=\w+)', r'\1stroke_width=2\3\4', code)
+    code = re.sub(r'(\w+=\w+,\s*)(color_)(\s*,\s*)(\w+=\w+)', r'\1color=WHITE\3\4', code)
+    
+    # Fix set_scale deprecation - replace with .scale() first
+    code = re.sub(r'\.set_scale\(([^)]+)\)', r'.scale(\1)', code)
+    
+    # Fix scale method issues - replace .scale(0) with .set_opacity(0) for visibility
+    code = re.sub(r'\.scale\(0\)', '.set_opacity(0)', code)
+    
+    # Fix max_width parameter issue - remove unsupported parameter
+    code = re.sub(r'max_width=[^,)]+[,)]', '', code)
+    code = re.sub(r',\s*max_width=[^,)]+', '', code)
+    
+    # Fix Sector/AnnularSector outer_radius duplication issue
+    code = re.sub(r'Sector\([^)]*outer_radius=([^,)]+)[^)]*outer_radius=([^,)]+)', r'Sector(outer_radius=\2', code)
+    code = re.sub(r'AnnularSector\([^)]*outer_radius=([^,)]+)[^)]*outer_radius=([^,)]+)', r'AnnularSector(outer_radius=\2', code)
+    
+    # Fix VGroup float addition issue - remove float values from VGroup
+    # Use a more robust approach
+    def fix_vgroup_floats(match):
+        content = match.group(0)
+        # Find the content inside VGroup(...)
+        inner_content = content[6:-1]  # Remove 'VGroup(' and ')'
+        
+        # Split by commas and filter out float values
+        parts = inner_content.split(',')
+        filtered_parts = []
+        for part in parts:
+            part = part.strip()
+            # Skip if it's just a number (float or int)
+            if not re.match(r'^[0-9]+\.?[0-9]*$', part):
+                filtered_parts.append(part)
+        
+        # Rejoin with commas and reconstruct VGroup
+        if filtered_parts:
+            result = 'VGroup(' + ','.join(filtered_parts) + ')'
+        else:
+            result = 'VGroup()'
+        # Clean up extra commas
+        result = re.sub(r',\s*,', ',', result)
+        result = re.sub(r',\s*\)', ')', result)
+        return result
+    
+    # Apply VGroup float fix with a more specific pattern
+    code = re.sub(r'VGroup\([^)]*\)', fix_vgroup_floats, code)
+    
+    # Fix VGroup syntax errors - malformed constructors with extra parentheses
+    # Pattern: VGroup(((...) -> VGroup(...)
+    code = re.sub(r'VGroup\(\(\s*\(', 'VGroup(', code)
+    code = re.sub(r'VGroup\(\(\s*', 'VGroup(', code)
+    
+    # Fix VGroup with starred expressions - remove extra parentheses
+    # Pattern: VGroup((*[...]) -> VGroup(*[...])
+    code = re.sub(r'VGroup\(\s*\(\s*\*', 'VGroup(*', code)
+    
+    # Fix VGroup with missing closing parentheses
+    # Pattern: VGroup((item1,item2) -> VGroup(item1,item2)
+    code = re.sub(r'VGroup\(\s*\(\s*([^)]+)\)\s*$', r'VGroup(\1)', code, flags=re.MULTILINE)
+    
+    # Fix duplicate variable assignments that cause UnboundLocalError
+    # Pattern: BLUE = BLUE -> # BLUE = BLUE (commented out)
+    code = re.sub(r'^(\s*)(\w+)\s*=\s*\2\s*$', r'\1# \2 = \2', code, flags=re.MULTILINE)
     
     # Clean up extra commas that might be left
     code = re.sub(r',\s*\)', ')', code)
@@ -1108,8 +1299,20 @@ async def process_scene_phase3_async(session: aiohttp.ClientSession, overview: D
         # Generate Manim code prompt for this scene
         prompt = generate_manim_code_prompt(overview, scene)
         
-        # Call OpenAI API asynchronously
-        response = await call_openai_api_async(session, prompt, api_key, model)
+        # Call OpenAI API asynchronously with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = await call_openai_api_async(session, prompt, api_key, model)
+                break
+            except aiohttp.ServerDisconnectedError as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️  Server disconnected on attempt {attempt + 1}, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    print(f"❌ Server disconnected after {max_retries} attempts")
+                    raise
         
         # Parse JSON response with robust fallback
         try:
