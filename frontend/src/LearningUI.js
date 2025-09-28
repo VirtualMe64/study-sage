@@ -5,7 +5,7 @@ export default function LearningUI() {
   const textareaRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Auto-expand textarea
+  // Auto-expand text area
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -26,7 +26,6 @@ export default function LearningUI() {
     };
     resizeCanvas();
 
-    // Nodes: spawn slightly outside the screen
     const nodes = Array.from({ length: 50 }, () => ({
       x: Math.random() * (canvas.width * 1.5) - canvas.width * 0.25,
       y: Math.random() * (canvas.height * 1.5) - canvas.height * 0.25,
@@ -46,16 +45,13 @@ export default function LearningUI() {
       ctx.rotate(angle);
       ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-      // Update node positions (drift)
       nodes.forEach((n) => {
         n.x += n.vx;
         n.y += n.vy;
-
         if (n.x < -canvas.width * 0.25 || n.x > canvas.width * 1.25) n.vx *= -1;
         if (n.y < -canvas.height * 0.25 || n.y > canvas.height * 1.25) n.vy *= -1;
       });
 
-      // Connections
       nodes.forEach((a, i) => {
         nodes.forEach((b, j) => {
           if (i !== j) {
@@ -73,7 +69,6 @@ export default function LearningUI() {
         });
       });
 
-      // Nodes
       nodes.forEach((n) => {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
@@ -82,8 +77,6 @@ export default function LearningUI() {
       });
 
       ctx.restore();
-
-      // slow global rotation
       angle += 0.0003 * Math.PI * 2;
     };
 
@@ -102,7 +95,7 @@ export default function LearningUI() {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center bg-gradient-to-br from-[#010A17] to-[#28497C] pt-60 overflow-hidden">
+    <div className="relative min-h-screen flex items-start justify-center bg-gradient-to-br from-[#010A17] to-[#28497C] pt-60 pb-24 overflow-hidden">
       {/* Background Canvas */}
       <canvas
         ref={canvasRef}
@@ -124,43 +117,73 @@ export default function LearningUI() {
       {/* Logo + Text */}
       <div className="absolute top-2 left-2 flex items-center z-20">
         <img
-            src="/logo512.png"
-            alt="Logo"
-            className="w-[96px] h-[144px]"
+          src="/logo512.png"
+          alt="Logo"
+          className="w-[96px] h-[144px]"
         />
         <div
-            className="ml-2 font-nunito font-bold text-[#F8F8F2]"
-            style={{
+          className="ml-2 font-nunito font-bold text-[#F8F8F2]"
+          style={{
             fontSize: "36px",
-            lineHeight: "72px", // smaller than logo height to fit two lines
+            lineHeight: "72px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            }}
+          }}
         >
-            <span style={{ lineHeight: "1" }}>Study</span>
-            <span style={{ lineHeight: "1" }}>Sage</span>
+          <span style={{ lineHeight: "1" }}>Study</span>
+          <span style={{ lineHeight: "1" }}>Sage</span>
         </div>
       </div>
 
-
-
       {/* Foreground UI */}
       <div className="relative text-center p-6 rounded-lg shadow-lg bg-[#B4BFD2]/70 backdrop-blur-sm flex flex-col items-center w-full max-w-3xl z-10">
-        <h1 className="text-3xl font-bold text-[#051B3D] mb-6">
+        <h1 className="text-3xl font-nunito font-bold text-[#051B3D] mb-6">
           What would you like to learn today?
         </h1>
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type your query..."
-          className="w-full max-w-2xl px-4 py-3 mb-4 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
-          style={{ minHeight: "3rem" }}
-        />
-        <button className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#528E78] transition-colors">
-          Go
-        </button>
+
+        {/* Textarea with upload button */}
+        <div className="relative w-full max-w-2xl mb-4">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type your query..."
+            className="w-full px-4 py-3 pr-12 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
+            style={{ minHeight: "3rem" }}
+          />
+          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-[#051B3D] text-white hover:bg-[#528E78]">
+            +
+          </button>
+        </div>
+
+        {/* Buttons + dropdowns row */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Complexity dropdown */}
+          <div className="flex flex-col">
+            <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">Complexity</label>
+            <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D]">
+              <option>Beginner</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+            </select>
+          </div>
+
+          {/* Depth dropdown */}
+          <div className="flex flex-col">
+            <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">Depth</label>
+            <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D]">
+              <option>Overview</option>
+              <option>Detailed</option>
+              <option>Comprehensive</option>
+            </select>
+          </div>
+
+          {/* Go button */}
+          <button className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#528E78] transition-colors">
+            Go
+          </button>
+        </div>
       </div>
     </div>
   );
