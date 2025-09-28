@@ -25,6 +25,7 @@ Requirements:
 10. CRITICAL: Properly escape backslashes in strings - use raw strings (r"") or double backslashes (\\\\) for LaTeX/MathTex
 11. CRITICAL: NEVER use multiline strings - keep all MathTex/Tex content on single lines
 12. CRITICAL: For complex LaTeX like tables, use string concatenation or variables, NOT multiline strings
+13. CRITICAL: Use .animate for Mobject transformations (e.g., circle.animate.shift(RIGHT), NOT circle.shift(RIGHT) in self.play())
 
 String handling examples:
 - For MathTex: MathTex(r"\\frac{1}{2}") or MathTex("\\\\frac{1}{2}")
@@ -46,6 +47,12 @@ Truth table generation example:
 - table_latex = rf"\\begin{{array}}{{|c|c|c|}} \\hline {header} \\\\\\\\ \\hline {rows} \\\\\\\\ \\hline \\end{{array}}"
 - table = MathTex(table_latex)
 
+Mobject animation examples:
+- self.play(circle.animate.shift(RIGHT))  # Move circle to the right
+- self.play(text.animate.scale(1.5))      # Scale text up by 1.5x
+- self.play(rect.animate.rotate(PI/4))    # Rotate rectangle 45 degrees
+- self.play(group.animate.to_edge(UP))    # Move group to top edge
+
 The animation should effectively teach the concept through visual storytelling and smooth transitions.
 
 Return ONLY the Python code, nothing else.`
@@ -64,49 +71,23 @@ from manim import *
 
 class MasterExplainerScene(Scene):
     def construct(self):
-        # Title slide for the lesson
+        # Simple title display
         title = Text("${lessonPlan.title}", font_size=48, color=WHITE)
-        title.to_edge(UP, buff=0.5)
-        
-        subtitle = Text("Educational Animation Series", font_size=32, color=GRAY)
-        subtitle.next_to(title, DOWN, buff=0.5)
-        
+        title.to_edge(UP, buff=1)
+
         # Show title
-        self.play(Write(title), run_time=2)
-        self.play(FadeIn(subtitle), run_time=1)
+        self.play(Write(title), run_time=3)
         self.wait(2)
-        
-        # Scene list
-        scene_list = VGroup()
-        ${sceneFiles.map((scene, index) => `
-        scene_${index + 1}_text = Text("Scene ${index + 1}: ${scene.id.replace('scene-', '').replace('-', ' ').toUpperCase()}", font_size=24)
-        scene_list.add(scene_${index + 1}_text)`).join('\n        ')}
-        
-        scene_list.arrange(DOWN, aligned_edge=LEFT, buff=0.3)
-        scene_list.next_to(subtitle, DOWN, buff=1)
-        
-        # Show scene list
-        self.play(Write(scene_list), run_time=3)
-        self.wait(2)
-        
-        # Fade out title slide
-        self.play(FadeOut(title), FadeOut(subtitle), FadeOut(scene_list))
+
+        # Fade out
+        self.play(FadeOut(title))
         self.wait(1)
-        
-        # Note: Individual scenes should be rendered separately
-        # This master scene serves as an introduction/overview
-        
-        # End with a conclusion
-        conclusion = Text("Thank you for watching!", font_size=36, color=WHITE)
-        self.play(Write(conclusion), run_time=2)
-        self.wait(2)
-        self.play(FadeOut(conclusion))
 
 if __name__ == "__main__":
-    # Render the master overview scene
+    # Render the master title scene
     master = MasterExplainerScene()
     master.render()
-    
+
     # Individual scenes should be rendered separately:
     ${sceneFiles.map(scene => `# python ${scene.filename}`).join('\n    ')}
 `;
@@ -173,7 +154,7 @@ export const processScenesStep = createStep({
       
       try {
         // Use the Manim code agent directly to generate the code
-        const result = await manimCodeAgent.generateVNext([{
+        const result = await manimCodeAgent.generate([{
           role: "user",
           content: generatePrompt(
             scene.title,

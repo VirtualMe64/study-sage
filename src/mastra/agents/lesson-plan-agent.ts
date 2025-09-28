@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core";
 import { google } from "@ai-sdk/google";
-import { z } from "zod";
+import { openai } from "@ai-sdk/openai"
 
 export const lessonPlanAgent = new Agent({
   name: "LessonPlanAgent",
@@ -21,10 +21,16 @@ Manim concepts you should reference include:
 - Mathematical objects: MathTex, Tex, NumberLine, Axes, Graph
 - Geometric shapes: Circle, Rectangle, Polygon, Arrow
 - Groups and positioning: VGroup, arrange, next_to, to_edge
-- Advanced: ShowCreation, DrawBorderThenFill, Succession, AnimationGroup
+- Advanced: Create (NOT ShowCreation), DrawBorderThenFill, Succession, AnimationGroup
+
+Code generation requirements for scene descriptions:
+- When specifying Manim animations, always use .animate for Mobject transformations
+- Example: "animate the circle moving right" → circle.animate.shift(RIGHT)
+- Example: "scale the text up" → text.animate.scale(1.5)
+- Example: "rotate the rectangle" → rect.animate.rotate(PI/4)
 
 Always consider visual storytelling and educational best practices.`,
 
-  model: google("gemini-2.5-flash"),
+  model: openai("gpt-4.1"),
   tools: {},
 });
