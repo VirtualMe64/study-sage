@@ -1672,8 +1672,6 @@ def main():
                        help=f"OpenAI model to use (default: {DEFAULT_MODEL})")
     args = parser.parse_args()
     
-    # Load environment variables from .env file
-    load_dotenv(dotenv_path="../.env")
     
     print("🎬 Manim Explainer Scene Generator")
     print("="*50)
@@ -1690,6 +1688,13 @@ def main():
         print("❌ Error: Please provide a topic.")
         return
     
+    main_main(topic, args.model, args.yes)
+
+
+def main_main(topic: str, model: str = DEFAULT_MODEL, arg_yes: bool = True) -> None :
+    
+    # Load environment variables from .env file
+    load_dotenv(dotenv_path="../.env")
     # Get OpenAI API key
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
@@ -1708,7 +1713,7 @@ def main():
         prompt = generate_scene_prompt(topic)
         
         # Call OpenAI API
-        response = call_openai_api(prompt, api_key, args.model)
+        response = call_openai_api(prompt, api_key, model)
         
         # Parse JSON response with robust fallback
         try:
@@ -1720,7 +1725,12 @@ def main():
             return
         
         # Save Phase 1 to file
-        phase1_output_path = "/home/zanger/Documents/cs/m-ai-nim/py_par/outputs/scene_map_phase_1.json"
+
+        # Get the directory of the current script
+        base_dir = os.path.dirname(__file__)
+
+        # Join it with your relative path
+        phase1_output_path = os.path.join(base_dir, "outputs", "scene_map_phase_1.json")
         save_scene_map(scene_data, phase1_output_path)
         
         # Print Phase 1 results
@@ -1730,14 +1740,19 @@ def main():
         print("📁 Phase 1 output saved to:", phase1_output_path)
         
         # Ask user if they want to proceed to Phase 2
-        proceed = get_user_input("\n🎬 Proceed to Phase 2 (detailed script generation)?", args.yes)
+        proceed = get_user_input("\n🎬 Proceed to Phase 2 (detailed script generation)?", arg_yes)
         
         if proceed:
             # Process Phase 2
-            phase2_data = process_scenes_phase2(scene_data, api_key, args.model)
+            phase2_data = process_scenes_phase2(scene_data, api_key, model)
             
             # Save Phase 2 to file
-            phase2_output_path = "/home/zanger/Documents/cs/m-ai-nim/py_par/outputs/scene_map_phase_2.json"
+
+            # Get the directory of the current script
+            base_dir = os.path.dirname(__file__)
+
+            # Join it with your relative path
+            phase2_output_path = os.path.join(base_dir, "outputs", "scene_map_phase_2.json")
             save_scene_map(phase2_data, phase2_output_path)
             
             # Print Phase 2 results
@@ -1748,25 +1763,33 @@ def main():
             print("📁 Phase 2 output saved to:", phase2_output_path)
             
             # Ask user if they want to proceed to Phase 3
-            proceed_phase3 = get_user_input("\n🎬 Proceed to Phase 3 (Manim code generation and video rendering)?", args.yes)
+            proceed_phase3 = get_user_input("\n🎬 Proceed to Phase 3 (Manim code generation and video rendering)?", arg_yes)
             
             if proceed_phase3:
                 # Process Phase 3
-                phase3_data = process_scenes_phase3(phase2_data, api_key, args.model)
+                phase3_data = process_scenes_phase3(phase2_data, api_key, model)
                 
                 # Save Phase 3 to file
-                phase3_output_path = "/home/zanger/Documents/cs/m-ai-nim/py_par/outputs/scene_map_phase_3_results.json"
+                # Get the directory of the current script
+                base_dir = os.path.dirname(__file__)
+
+                # Join it with your relative path
+                phase3_output_path = os.path.join(base_dir, "outputs", "scene_map_phase_3.json")
                 save_scene_map(phase3_data, phase3_output_path)
                 
                 print("\n✅ Phase 3 code generation completed!")
                 print("📁 Phase 3 output saved to:", phase3_output_path)
                 
                 # Ask user if they want to render videos
-                render_videos_choice = get_user_input("\n🎬 Render videos and create complete animation?", args.yes)
+                render_videos_choice = get_user_input("\n🎬 Render videos and create complete animation?", arg_yes)
                 
                 if render_videos_choice:
                     # Render videos
-                    output_dir = "/home/zanger/Documents/cs/m-ai-nim/py_par/outputs"
+                    base_dir = os.path.dirname(__file__)
+                    # Join it with your relative path
+                    output_dir = os.path.join(base_dir, "outputs")            
+
+            
                     videos = render_videos(phase3_data, output_dir)
                     
                     if videos:

@@ -177,7 +177,7 @@ Enter the topic you want to create an animation about (e.g., Pythagoras, BFS, DP
 
 🤖 Generating scene map for: Pythagoras
 This may take a moment...
-✅ Scene map saved to: /home/zanger/Documents/cs/m-ai-nim/py_par/outputs/scene_map_phase_1.json
+✅ Scene map saved to: ..../outputs/scene_map_phase_1.json
 
 ================================================================================
 🎬 GENERATED SCENE MAP

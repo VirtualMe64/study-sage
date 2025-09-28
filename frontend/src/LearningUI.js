@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
+import ApiService from "./services/api";
 
 export default function LearningUI() {
   const [text, setText] = useState("");
+  const [complexity, setComplexity] = useState("intermediate");
+  const [depth, setDepth] = useState("detailed");
   const [showVideo, setShowVideo] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
   const textareaRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -15,6 +20,43 @@ export default function LearningUI() {
       textarea.style.height = textarea.scrollHeight + "px";
     }
   }, [text]);
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) {
+      setError("Please enter a topic to learn about");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await ApiService.generateVideo({
+        topic: text.trim(),
+        complexity,
+        depth
+      });
+
+      if (response.success) {
+        setResult({
+          message: response.message,
+          topic: response.topic,
+          complexity: response.complexity,
+          depth: response.depth
+        });
+        setShowVideo(true);
+      } else {
+        setError(response.error || "Failed to generate video");
+      }
+    } catch (err) {
+      setError(err.message || "An error occurred while processing your request");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Background animation
   useEffect(() => {
@@ -154,55 +196,86 @@ export default function LearningUI() {
             What would you like to learn today?
           </h1>
 
-          {/* Textarea */}
-          <div className="relative w-full max-w-2xl mb-4">
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type your query..."
-              className="w-full px-4 py-3 pr-12 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
-              style={{ minHeight: "3rem" }}
-            />
-            <button className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-[#051B3D] text-white hover:bg-[#528E78]">
-              +
-            </button>
-          </div>
+          <form onSubmit={handleSubmit}>
+            {/* Textarea */}
+            <div className="relative w-full max-w-2xl mb-4">
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Type your query..."
+                className="w-full px-4 py-3 pr-12 rounded-lg border border-[#528E78] focus:outline-none focus:ring-2 focus:ring-[#051B3D] resize-none overflow-hidden text-lg"
+                style={{ minHeight: "3rem" }}
+                disabled={loading}
+              />
+              <button 
+                type="button"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-[#051B3D] text-white hover:bg-[#528E78]"
+              >
+                +
+              </button>
+            </div>
 
-          {/* Buttons + dropdowns */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-col">
-              <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
-                Complexity
-              </label>
-              <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white">
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Advanced</option>
-              </select>
+            {/* Buttons + dropdowns */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
+                  Complexity
+                </label>
+                <select 
+                  value={complexity}
+                  onChange={(e) => setComplexity(e.target.value)}
+                  className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white"
+                  disabled={loading}
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
+                  Depth
+                </label>
+                <select 
+                  value={depth}
+                  onChange={(e) => setDepth(e.target.value)}
+                  className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white"
+                  disabled={loading}
+                >
+                  <option value="overview">Overview</option>
+                  <option value="detailed">Detailed</option>
+                  <option value="comprehensive">Comprehensive</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#28497C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                {loading ? "Generating..." : "Go"}
+              </button>
             </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-nunito font-bold text-[#051B3D] mb-1">
-                Depth
-              </label>
-              <select className="rounded-lg border border-[#528E78] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#051B3D] hover:bg-white">
-                <option>Overview</option>
-                <option>Detailed</option>
-                <option>Comprehensive</option>
-              </select>
+          </form>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              {error}
             </div>
-            <button
-              className="w-32 py-2 rounded-lg bg-[#051B3D] text-white font-semibold hover:bg-[#28497C] transition-colors"
-              onClick={() => {
-                setLoading(true);
-                setText(""); // reset text when starting
-              }}
-            >
-              Go
-            </button>
-          </div>
-        </div>
-      ) : null}
+          )}
+
+          {/* Result Message */}
+          {result && (
+            <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+              <h3 className="font-semibold">Video Generation Complete!</h3>
+              <p>Topic: {result.topic}</p>
+              <p>Complexity: {result.complexity}</p>
+              <p>Depth: {result.depth}</p>
+              <p className="text-sm mt-2">Check the py_par/outputs directory for generated files.</p>
+            </div>
+          )}
+        </div>) : null}
 
       {/* Loading Screen */}
       {loading && !showVideo && (
